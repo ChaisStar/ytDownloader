@@ -1,17 +1,27 @@
 # === СТАДІЯ 1: Збірка React (Vite) ===
 FROM node:18 AS build-frontend
 WORKDIR /app
-COPY ytdownloader-client/package.json ytdownloader-client/package-lock.json ./
-RUN npm install
-COPY ytdownloader-client ./
-RUN npm run build
+COPY ./ytdownloader-client/package.json ./ytdownloader-client/yarn.lock ./
+RUN yarn install --frozen-lockfile
+COPY ./ytdownloader-client ./
+RUN yarn build
 
-# === СТАДІЯ 2: Збірка .NET 9.0 API ===
+# === СТАДІЯ 2: Збірка .NET 8.0 API ===
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-backend
 WORKDIR /src
+
+# Оптимізоване кешування залежностей
+COPY *.sln ./
+COPY docker-compose.dcproj ./
 COPY YtDownloader.Api/*.csproj YtDownloader.Api/
-RUN dotnet restore YtDownloader.Api/YtDownloader.Api.csproj
-COPY YtDownloader.Api/. YtDownloader.Api/
+COPY YtDownloader.Base/*.csproj YtDownloader.Base/
+COPY YtDownloader.Core/*.csproj YtDownloader.Core/
+COPY YtDownloader.Database/*.csproj YtDownloader.Database/
+COPY ytdownloader-client/*.esproj ytdownloader-client/
+RUN dotnet restore YtDownloader.sln
+
+# Копіюємо всі вихідні файли та збираємо
+COPY . .
 RUN dotnet publish YtDownloader.Api/YtDownloader.Api.csproj -c Release -o /app/publish
 
 # === СТАДІЯ 3: Запуск контейнера ===
@@ -20,8 +30,12 @@ WORKDIR /app
 
 # Оновлення системи та встановлення Python3, pip, ffmpeg, yt-dlp
 RUN apt-get update && \
-    apt-get install -y curl ca-certificates xz-utils python3 python3-pip pipx && \
-    update-ca-certificates
+    apt-get install -y --no-install-recommends curl ca-certificates xz-utils python3 python3-pip pipx && \
+    update-ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+# Додаємо pipx у PATH перед встановленням yt-dlp
+ENV PATH="/root/.local/bin:$PATH"
 
 # Використання pipx для встановлення yt-dlp
 RUN pipx install yt-dlp
@@ -32,14 +46,13 @@ RUN curl -L https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-stati
     mv ffmpeg-*-static/ffprobe /usr/local/bin/ && \
     chmod a+rx /usr/local/bin/ffmpeg /usr/local/bin/ffprobe
 
-    ENV PATH="/root/.local/bin:$PATH"
-
 # Копіюємо .NET API
 COPY --from=build-backend /app/publish .
 
 # Копіюємо React у static
 COPY --from=build-frontend /app/dist ./static
 
+# Створюємо томи для збереження відео
 VOLUME ["/tmp/youtube", "/tmp/youtube_later", "/tmp/finished"]
 
 # Відкриваємо порт
