@@ -29,15 +29,15 @@ jobs:
           --label "org.opencontainers.image.revision=${{ github.sha }}" \
           --label "org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
           --label "org.opencontainers.image.source=${{ github.repository }}" \
-          --tag ${{ secrets.DOCKER_USERNAME }}/my-image-name:${{ github.sha }} \
+          --tag ${{ secrets.DOCKER_USERNAME }}/ytdownloader:${{ github.sha }} \
           .
 
     - name: Push Docker image
-      run: docker push ${{ secrets.DOCKER_USERNAME }}/my-image-name:${{ github.sha }}
+      run: docker push ${{ secrets.DOCKER_USERNAME }}/ytdownloader:${{ github.sha }}
 
     - name: Push Docker image with latest tag
       if: github.ref == 'refs/heads/master'
       run: |
         set -e
-        docker tag ${{ secrets.DOCKER_USERNAME }}/my-image-name:${{ github.sha }} ${{ secrets.DOCKER_USERNAME }}/my-image-name:latest
-        docker push ${{ secrets.DOCKER_USERNAME }}/my-image-name:latest
+        docker tag ${{ secrets.DOCKER_USERNAME }}/ytdownloader:${{ github.sha }} ${{ secrets.DOCKER_USERNAME }}/ytdownloader:latest
+        docker push ${{ secrets.DOCKER_USERNAME }}/ytdownloader:latest
