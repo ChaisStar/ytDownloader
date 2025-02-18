@@ -12,7 +12,7 @@ function formatDate(date: undefined | string | Date, f: string) {
     return format(localDate, f);
 }
 
-const URL = import.meta.env.VITE_API_URL;
+const URL = import.meta.env.VITE_API_URL || "";
 
 function App() {
     const [downloads, setDownloads] = useState<DownloadItem[]>([]);
