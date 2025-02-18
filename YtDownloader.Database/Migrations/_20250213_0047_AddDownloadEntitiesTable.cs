@@ -4,12 +4,12 @@ using YtDownloader.Database.Entities;
 
 namespace YtDownloader.Database.Migrations;
 
-[Migration(2025_02_13_00_47, "Added table 'downloads'")]
+[Migration(2025_02_13_00_47, "Added table 'Downloads'")]
 public class _20250213_0047_AddDownloadEntitiesTable: Migration
 {
     public override void Up()
     {
-        Create.Table("downloads")
+        Create.Table("Downloads")
             .WithColumn(nameof(DownloadEntity.Id)).AsInt32().PrimaryKey().Identity()
             .WithColumn(nameof(DownloadEntity.Url)).AsString(256).Unique().NotNullable()
             .WithColumn(nameof(DownloadEntity.Thumbnail)).AsString(2048).Nullable()
@@ -24,5 +24,5 @@ public class _20250213_0047_AddDownloadEntitiesTable: Migration
             .WithColumn(nameof(DownloadEntity.Finished)).AsDateTime().Nullable()
             .WithColumn(nameof(DownloadEntity.Later)).AsBoolean().NotNullable();
     }
-    public override void Down() => Delete.Table("downloads");
+    public override void Down() => Delete.Table("Downloads");
 }
