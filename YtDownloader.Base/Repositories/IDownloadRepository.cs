@@ -13,6 +13,8 @@ public interface IDownloadRepository
 
     Task<IReadOnlyList<Download>> Get(params DownloadStatus[] downloadStatuses);
 
+    Task<IReadOnlyList<Download>> GetUndefined();
+
     Task<Download> Create(string url, bool later);
 
     Task<Download> Update(Download download, string[] columnsToUpdate);

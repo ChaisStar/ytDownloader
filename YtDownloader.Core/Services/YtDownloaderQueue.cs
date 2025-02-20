@@ -20,6 +20,20 @@ public class YtDownloaderQueue(IServiceProvider serviceProvider, ILogger<YtDownl
 
         while (!stoppingToken.IsCancellationRequested)
         {
+            var undefinedDownloads = await DownloadService.GetUndefinedDownloads();
+            foreach (var download in undefinedDownloads)
+            {
+                await UpdateInfoAsync(download);
+            }
+
+            var failedDownloads = await DownloadService.GetFailedDownloads();
+            foreach (var download in failedDownloads)
+            {
+                await UpdateInfoAsync(download);
+                _queueIds.Add(download.Id);
+                _ = RunAsync(download);
+            }
+
             var queuedDownloads = await DownloadService.GetPendingDownloads();
             var newDownloads = queuedDownloads.Where(qi => !_queueIds.Contains(qi.Id)).ToList();
 

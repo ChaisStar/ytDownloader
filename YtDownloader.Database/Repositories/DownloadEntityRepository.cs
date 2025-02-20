@@ -42,9 +42,13 @@ internal class DownloadEntityRepository(YtDownloaderContext context) : IDownload
     public async Task<IReadOnlyList<Download>> Get(params DownloadStatus[] downloadStatuses)
     {
         var query = context.Downloads.Where(d => downloadStatuses.Contains(d.Status));
-        var d = context.Downloads.ToList();
-        var downloads = await query.Cast<Download>().ToListAsync();
-        return downloads;
+        return await query.Cast<Download>().ToListAsync();
+    }
+
+    public async Task<IReadOnlyList<Download>> GetUndefined()
+    {
+        var query = context.Downloads.Where(d => d.Title == null && d.Status != DownloadStatus.Pending);
+        return await query.Cast<Download>().ToListAsync();
     }
 
     public async Task Remove(int id)

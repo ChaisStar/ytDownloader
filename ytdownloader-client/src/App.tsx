@@ -1,15 +1,21 @@
 ﻿import { useEffect, useState } from "react";
 import { DownloadItem } from "./DownloadItem";
-import { format } from "date-fns";
+import { format, differenceInSeconds } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { DownloadStatus } from "./DownloadStatus";
 
 const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 function formatDate(date: undefined | string | Date, f: string) {
-    if (!date) return "N/A";
+    if (!date) return "-";
     const localDate = toZonedTime(date, timeZone);
     return format(localDate, f);
+}
+
+function calculateDuration(started?: string | Date, finished?: string | Date) {
+    if (!started || !finished) return "-";
+    const duration = differenceInSeconds(new Date(finished), new Date(started));
+    return `${Math.floor(duration / 60)}m ${duration % 60}s`;
 }
 
 const URL = import.meta.env.VITE_API_URL || "";
@@ -43,9 +49,8 @@ function App() {
                 <table className="min-w-full border border-gray-300">
                     <thead className="bg-gray-100">
                         <tr>
-                            {[
-                                "Thumbnail", "Title", "Status", "Progress", "Size",
-                                "Speed", "ETA", "Created", "Started", "Finished", "Later"
+                            {["Thumbnail", "Title", "Status", "Progress", "Size",
+                                "Speed", "ETA", "Created", "Duration", "Later"
                             ].map((header) => (
                                 <th key={header} className="border border-gray-300 px-3 py-2 text-sm text-left">
                                     {header}
@@ -64,12 +69,11 @@ function App() {
                                 <td className="border border-gray-300 px-3 py-2">{item.title ?? "Undefined"}</td>
                                 <td className="border border-gray-300 px-3 py-2">{DownloadStatus[item.status]}</td>
                                 <td className="border border-gray-300 px-3 py-2">{item.progress}%</td>
-                                <td className="border border-gray-300 px-3 py-2">{item.totalSize ?? "N/A"}</td>
-                                <td className="border border-gray-300 px-3 py-2">{item.speed ?? "N/A"}</td>
-                                <td className="border border-gray-300 px-3 py-2">{item.eta ?? "N/A"}</td>
+                                <td className="border border-gray-300 px-3 py-2">{item.totalSize ?? "-"}</td>
+                                <td className="border border-gray-300 px-3 py-2">{item.speed ?? "-"}</td>
+                                <td className="border border-gray-300 px-3 py-2">{item.eta ?? "-"}</td>
                                 <td className="border border-gray-300 px-3 py-2">{formatDate(item.created, "dd-MM HH:mm")}</td>
-                                <td className="border border-gray-300 px-3 py-2">{formatDate(item.started, "HH:mm")}</td>
-                                <td className="border border-gray-300 px-3 py-2">{formatDate(item.finished, "HH:mm")}</td>
+                                <td className="border border-gray-300 px-3 py-2">{calculateDuration(item.started, item.finished)}</td>
                                 <td className="border border-gray-300 px-3 py-2">{item.later ? "✓" : ""}</td>
                             </tr>
                         ))}

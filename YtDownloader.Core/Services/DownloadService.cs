@@ -10,6 +10,10 @@ internal class DownloadService(IDownloadRepository repository, IYtDlService ytDl
 {
     public Task<IReadOnlyList<Download>> GetPendingDownloads() => repository.Get(DownloadStatus.Pending);
 
+    public Task<IReadOnlyList<Download>> GetFailedDownloads() => repository.Get(DownloadStatus.Failed);
+
+    public Task<IReadOnlyList<Download>> GetUndefinedDownloads() => repository.GetUndefined();
+
     public async Task UpdateInfo(Download download)
     {
         var metadata = await ytDlService.GetVideoDataAsync(download.Url);
