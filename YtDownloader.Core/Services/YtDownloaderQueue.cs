@@ -53,7 +53,7 @@ public class YtDownloaderQueue(IServiceProvider serviceProvider, ILogger<YtDownl
     {
         try
         {
-            await DownloadService.UpdateInfo(download);           
+            await DownloadService.UpdateInfo(download);
         }
         catch (Exception)
         {
