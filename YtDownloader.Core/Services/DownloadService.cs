@@ -16,7 +16,7 @@ internal class DownloadService(IDownloadRepository repository, IYtDlService ytDl
 
     public async Task UpdateInfo(Download download)
     {
-        var metadata = await ytDlService.GetVideoDataAsync(download.Url);
+        var metadata = await ytDlService.GetVideoData(download.Url);
 
         // Best video
         var bestVideo = metadata.Data.Formats?
@@ -42,8 +42,9 @@ internal class DownloadService(IDownloadRepository repository, IYtDlService ytDl
     {
         var columnsToUpdate = item.Start();
         await repository.Update(item, columnsToUpdate);
-        var result = await ytDlService.RunVideoDownloadAsync(item.Url, item.Later, p => HandleProgress(item, p));
-        columnsToUpdate = item.Finish();
+        var result = await ytDlService.RunVideoDownload(item.Url, item.Later, p => HandleProgress(item, p));
+        var fileSize = new FileInfo(result.Data).Length;
+        columnsToUpdate = item.Finish(fileSize);
         await repository.Update(item, columnsToUpdate);
 
         var filename = result.Data.Replace("/tmp/", "");

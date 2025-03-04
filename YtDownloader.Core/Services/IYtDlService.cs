@@ -5,7 +5,9 @@ namespace YtDownloader.Core.Services;
 
 internal interface IYtDlService
 {
-    Task<RunResult<string>> RunVideoDownloadAsync(string url, bool later = false, Action<DownloadProgress>? downloadProgressHandler = null);
+    Task<RunResult<string>> RunVideoDownload(string url, bool later = false, Action<DownloadProgress>? downloadProgressHandler = null);
 
-    Task<RunResult<VideoData>> GetVideoDataAsync(string url);
+    Task<RunResult<VideoData>> GetVideoData(string url);
+
+    Task<RunResult<string>> RunMp3PlaylistDownload(string url);
 }

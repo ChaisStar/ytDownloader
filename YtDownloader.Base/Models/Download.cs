@@ -56,14 +56,15 @@ public record Download
         return [nameof(Status), nameof(Started)];
     }
 
-    public string[] Finish()
+    public string[] Finish(long fileSize)
     {
         Status = DownloadStatus.Finished;
         Finished = DateTime.UtcNow;
         ETA = null;
         Speed = null;
         Progress = 100;
-        return [nameof(Status), nameof(Finished), nameof(ETA), nameof(Speed), nameof(Progress)];
+        TotalSize = fileSize;
+        return [nameof(Status), nameof(Finished), nameof(ETA), nameof(Speed), nameof(Progress), nameof(TotalSize)];
     }
 
     public string[] Fail()
