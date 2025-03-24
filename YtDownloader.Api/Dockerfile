@@ -17,6 +17,21 @@ RUN curl -L https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-stati
     mv ffmpeg-*-static/ffprobe /usr/local/bin/ && \
     chmod a+rx /usr/local/bin/ffmpeg /usr/local/bin/ffprobe
 
+# Створення скрипта для оновлення yt-dlp та ffmpeg
+RUN echo '#!/bin/bash\n\
+pipx upgrade yt-dlp\n\
+curl -L https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz | tar -xJ && \
+mv ffmpeg-*-static/ffmpeg /usr/local/bin/ && \
+mv ffmpeg-*-static/ffprobe /usr/local/bin/ && \
+chmod a+rx /usr/local/bin/ffmpeg /usr/local/bin/ffprobe\n\
+rm -rf ffmpeg-*-static' > /update-tools.sh && \
+    chmod +x /update-tools.sh
+
+# Налаштування cron для запуску оновлення щодня о 2:00 AM
+RUN echo "0 2 * * * root /update-tools.sh >> /var/log/cron.log 2>&1" > /etc/cron.d/update-tools && \
+    chmod 0644 /etc/cron.d/update-tools && \
+    touch /var/log/cron.log
+
 #USER $APP_UID
 WORKDIR /app
 EXPOSE 8080
@@ -43,4 +58,6 @@ RUN dotnet publish "./YtDownloader.Api.csproj" -c $BUILD_CONFIGURATION -o /app/p
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "YtDownloader.Api.dll"]
+
+# Запуск cron у фоновому режимі та .NET додатку
+ENTRYPOINT ["sh", "-c", "cron && dotnet YtDownloader.Api.dll"]

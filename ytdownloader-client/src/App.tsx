@@ -14,7 +14,7 @@ function formatDate(date: undefined | string | Date, f: string) {
 
 function calculateDuration(started?: string | Date, finished?: string | Date) {
     if (!started) return "-";
-    const end = finished ? new Date(finished) : new Date();
+    const end = finished ? new Date(finished) : new Date(new Date().toUTCString());
     const duration = differenceInSeconds(end, new Date(started));
     return `${Math.floor(duration / 60)}m ${duration % 60}s`;
 }
