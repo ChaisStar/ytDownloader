@@ -78,9 +78,10 @@ public record Download
 
     public string[] UpdateProgress(int progress, string speed, string eTA)
     {
+        Status = DownloadStatus.Downloading;
         Progress = progress;
         Speed = speed;
         ETA = eTA;
-        return [nameof(Progress), nameof(Speed), nameof(ETA)];
+        return [nameof(Progress), nameof(Speed), nameof(ETA), nameof(Status)];
     }
 }

@@ -8,6 +8,7 @@ namespace YtDownloader.Core.Services;
 
 internal class DownloadService(IDownloadRepository repository, IYtDlService ytDlService) : IDownloadService
 {
+    private const string None = "none";
     public Task<IReadOnlyList<Download>> GetPendingDownloads() => repository.Get(DownloadStatus.Pending);
 
     public Task<IReadOnlyList<Download>> GetFailedDownloads() => repository.Get(DownloadStatus.Failed);
@@ -18,17 +19,31 @@ internal class DownloadService(IDownloadRepository repository, IYtDlService ytDl
     {
         var metadata = await ytDlService.GetVideoData(download.Url);
 
-        // Best video
+        // Best video (720p to 1080p, ~5Mbps max)
         var bestVideo = metadata.Data.Formats?
-            .Where(f => f.VideoCodec != "none") // Only video formats
-            .OrderByDescending(f => f.Height) // Best quality
+            .Where(f => f.VideoCodec != None && f.VideoCodec != null &&
+                        (f.Height ?? 0) <= 1080 && (f.Height ?? 0) >= 720 &&
+                        (f.VideoBitrate ?? 0) <= 5000 &&
+                        (f.FileSize is not null || f.ApproximateFileSize is not null))
+            .OrderByDescending(f => f.Height ?? 0)
+            .ThenByDescending(f => f.VideoBitrate ?? 0)
             .FirstOrDefault();
 
-        // Best audio in m4a format
-        var bestAudio = metadata.Data.Formats?
-            .Where(f => f.VideoCodec != "none" && f.Extension == "m4a") // Only m4a audio
-            .OrderByDescending(f => f.AudioBitrate) // Best audio quality
-            .FirstOrDefault();
+        // Best audio (prefer m4a up to 128kbps, fallback to any audio)
+        var bestAudio = 
+            metadata.Data.Formats?
+                .Where(f => f.AudioCodec != None && f.AudioCodec != null &&
+                            f.VideoCodec == None && f.Extension == "m4a" &&
+                            (f.AudioBitrate ?? 0) <= 128 &&
+                            (f.FileSize is not null || f.ApproximateFileSize is not null))
+                .OrderByDescending(f => f.AudioBitrate ?? 0)
+                .FirstOrDefault() 
+            ?? metadata.Data.Formats?
+                .Where(f => f.AudioCodec != None && f.AudioCodec != null &&
+                            f.VideoCodec == None &&
+                            (f.FileSize is not null || f.ApproximateFileSize is not null))
+                .OrderByDescending(f => f.AudioBitrate ?? 0)
+                .FirstOrDefault();
 
         long videoSize = bestVideo?.FileSize ?? bestVideo?.ApproximateFileSize ?? 0;
         long audioSize = bestAudio?.FileSize ?? bestAudio?.ApproximateFileSize ?? 0;
