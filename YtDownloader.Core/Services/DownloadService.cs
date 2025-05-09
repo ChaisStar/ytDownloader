@@ -43,7 +43,7 @@ internal class DownloadService(IDownloadRepository repository, IYtDlService ytDl
             .FirstOrDefault();
 
         // Debugging info
-        Console.WriteLine($"Best Video: Codec={bestVideo?.VideoCodec}, Height={bestVideo?.Height}, FPS={bestVideo?.Fps}, Bitrate={bestVideo?.VideoBitrate}");
+        Console.WriteLine($"Best Video: Codec={bestVideo?.VideoCodec}, Height={bestVideo?.Height}, FPS={bestVideo?.FrameRate}, Bitrate={bestVideo?.VideoBitrate}");
         Console.WriteLine($"Best Audio: Codec={bestAudio?.AudioCodec}, Format={bestAudio?.Extension}, Bitrate={bestAudio?.AudioBitrate}");
 
         // Calculate sizes
