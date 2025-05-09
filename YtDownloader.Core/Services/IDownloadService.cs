@@ -1,6 +1,4 @@
-﻿
-using YtDownloader.Base.Enums;
-using YtDownloader.Base.Models;
+﻿using YtDownloader.Base.Models;
 
 namespace YtDownloader.Core.Services
 {
