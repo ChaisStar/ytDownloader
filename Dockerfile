@@ -6,8 +6,8 @@ RUN yarn install --frozen-lockfile
 COPY ./ytdownloader-client ./
 RUN yarn build
 
-# === СТАДІЯ 2: Збірка .NET 8.0 API ===
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-backend
+# === СТАДІЯ 2: Збірка .NET 9.0 API ===
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build-backend
 WORKDIR /src
 
 # Оптимізоване кешування залежностей
@@ -25,7 +25,7 @@ COPY . .
 RUN dotnet publish YtDownloader.Api/YtDownloader.Api.csproj -c Release -o /app/publish
 
 # === СТАДІЯ 3: Запуск контейнера ===
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
+FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
 
 # Оновлення системи та встановлення Python3, pip, ffmpeg, yt-dlp
