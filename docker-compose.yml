@@ -1,11 +1,20 @@
 services:
+  # database:
+  #   image: mariadb
+  #   restart: always
+  #   volumes:
+  #       - ./volumes/mysql_data:/var/lib/mysql
+  #   environment:
+  #     MARIADB_ROOT_PASSWORD: root
   database:
-    image: mariadb
+    image: postgres
     restart: always
     volumes:
-        - ./volumes/mysql_data:/var/lib/mysql
+      - ./volumes/postgres_data:/var/lib/postgresql
     environment:
-      MARIADB_ROOT_PASSWORD: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_USER: root
+      POSTGRES_DB: ytDownload
   ytdownloader.api:
     image: ${DOCKER_REGISTRY-}ytdownloaderapi
     depends_on:
@@ -19,6 +28,7 @@ services:
         - ./volumes/youtube:/tmp/youtube
         - ./volumes/youtube_later:/tmp/youtube_later
         - ./volumes/finished:/tmp/finished
+        - ./volumes/cookies:/tmp/cookies  
     ports:
         - 8080:8080
         - 8081:8081

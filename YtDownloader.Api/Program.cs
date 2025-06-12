@@ -2,6 +2,7 @@
 using YtDownloader.Database;
 using YtDownloader.Core;
 using FluentMigrator.Runner;
+using FastEndpoints;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,16 +21,15 @@ builder.Services.AddCors(options =>
 builder.Services.AddYtDownloaderServices();
 builder.Services.AddYtDownloaderDatabase();
 
-builder.Services.AddControllers();
+builder.Services.AddFastEndpoints();
 
 var app = builder.Build();
 
 using var serviceScope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope();
 var runner = serviceScope.ServiceProvider.GetRequiredService<IMigrationRunner>();
 runner.MigrateUp();
-
 app.UseCors("AllowAll");
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
 var staticFilesPath = Path.Combine(builder.Environment.ContentRootPath, "static");
 
@@ -49,7 +49,7 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.MapControllers();
+app.UseFastEndpoints();
 
 // Fallback for SPA
 app.Use(async (context, next) =>

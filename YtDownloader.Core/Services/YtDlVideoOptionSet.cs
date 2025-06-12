@@ -10,7 +10,8 @@ public class YtDlVideoOptionSet : Lazy<OptionSet>
         //Format = "bestvideo+bestaudio[ext=m4a]/best"
         //Format = "bestvideo[height<=1080][height>=720]+bestaudio[ext=m4a][abr<=128]/bestvideo[height<=1080]+bestaudio/best[height<=1080]",
         Format = "bestvideo[height<=1080][height>=720][fps<=30]+bestaudio[ext=m4a][abr<=128]/bestvideo[height<=1080][fps<=30]+bestaudio[ext=m4a]/best[height<=1080]",
-        EmbedThumbnail = true
+        EmbedThumbnail = true,
+        Cookies = "/tmp/cookies/cookies.txt",
     })
     { }
 }
@@ -21,7 +22,8 @@ public class YtDlMp3OptionSet : Lazy<OptionSet>
     {
         ExtractAudio = true,
         AudioFormat = AudioConversionFormat.Mp3,
-        Format = "bestaudio"
+        Format = "bestaudio",
+        Cookies = "/tmp/cookies/cookies.txt",
     })
     { }
 }

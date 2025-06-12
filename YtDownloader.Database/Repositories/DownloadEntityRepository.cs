@@ -13,6 +13,11 @@ internal class DownloadEntityRepository(YtDownloaderContext context) : IDownload
 {
     public async Task<Download> Create(string url, bool later)
     {
+        var existing = await context.Downloads.FirstOrDefaultAsync(d => d.Url == url);
+        if (existing is not null)
+        {
+            return existing;
+        }
         var download = new DownloadEntity()
         {
             Url = url,
