@@ -17,5 +17,5 @@ public class GetDownloadEndpoint(IDownloadRepository repository) : Endpoint<Down
     }
 
     public override async Task HandleAsync(DownloadIdRequest req, CancellationToken ct) =>
-        await SendAsync(new DownloadResponse(await Repository.Get(req.Id)), cancellation: ct);
+        await Send.OkAsync(new DownloadResponse(await Repository.Get(req.Id)), cancellation: ct);
 }

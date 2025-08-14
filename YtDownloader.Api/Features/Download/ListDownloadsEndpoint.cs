@@ -20,6 +20,6 @@ public class ListDownloadsEndpoint(IDownloadRepository repository) : Endpoint<Em
     public override async Task HandleAsync(EmptyRequest req, CancellationToken ct)
     {
         var items = await Repository.Get(DownloadStatus.Pending, DownloadStatus.Downloading, DownloadStatus.Finished, DownloadStatus.Failed, DownloadStatus.Cancelled);
-        await SendAsync([.. items.Select(x => new DownloadResponse(x))], cancellation: ct);
+        await Send.OkAsync([.. items.Select(x => new DownloadResponse(x))], cancellation: ct);
     }
 }

@@ -36,7 +36,7 @@ namespace YtDownloader.Api.Features.Cookies
             using var stream = new FileStream(cookiesFilePath, FileMode.Create);
             await req.Cookies.CopyToAsync(stream, ct);
             await stream.FlushAsync(ct);
-            await SendOkAsync(new EmptyResponse(), ct);
+            await Send.OkAsync(new EmptyResponse(), ct);
         }
     }
 }

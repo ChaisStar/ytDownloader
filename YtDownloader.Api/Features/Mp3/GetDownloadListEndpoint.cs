@@ -27,6 +27,6 @@ public class GetDownloadListEndpoint(IMp3DownloadService mp3DownloadService) : E
         }
         ThrowIfAnyErrors(400);
         var items = await Mp3DownloadService.GetList(req.Url!);
-        await SendAsync([.. items], cancellation: ct);
+        await Send.OkAsync([.. items], cancellation: ct);
     }
 }

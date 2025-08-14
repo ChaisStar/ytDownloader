@@ -27,6 +27,6 @@ public class CreateDownloadEndpoint(IDownloadRepository repository) : Endpoint<A
         }
         ThrowIfAnyErrors(400);
         var item = await repository.Create(req.Url!, req.Later);
-        await SendAsync(new DownloadResponse(item), cancellation: ct);
+        await Send.OkAsync(new DownloadResponse(item), cancellation: ct);
     }
 }

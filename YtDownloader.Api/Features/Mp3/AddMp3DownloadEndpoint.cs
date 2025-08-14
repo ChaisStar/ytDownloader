@@ -27,6 +27,6 @@ public class AddMp3DownloadEndpoint(IMp3DownloadService mp3DownloadService) : En
         }
         ThrowIfAnyErrors(400);
         var (fileName, content) = await Mp3DownloadService.DownloadMp3(req.Url!);
-        await SendStreamAsync(content, fileName, contentType: "audio/mpeg", cancellation: ct);
+        await Send.StreamAsync(content, fileName, contentType: "audio/mpeg", cancellation: ct);
     }
 }
