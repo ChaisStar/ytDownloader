@@ -38,6 +38,8 @@ const URL = import.meta.env.VITE_API_URL || "";
 
 function App() {
     const [downloads, setDownloads] = useState<DownloadItem[]>([]);
+    const [url, setUrl] = useState<string>("");
+    const [later, setLater] = useState<boolean>(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -81,6 +83,30 @@ function App() {
         }
     };
 
+    const handleAdd = async () => {
+    try {
+        const response = await fetch(`${URL}/downloads`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                    url,
+                    later,
+                }),
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to add download");
+        }
+
+        // Оновлення списку після додавання
+        setUrl("");
+        setLater(false);
+    } catch (error) {
+        console.error("Error adding download:", error);
+        alert("Failed to add download");
+    }
+    };
+
     // Helper function to get status display text and color
     const getStatusDisplay = (status: DownloadStatus) => {
         switch (status) {
@@ -101,6 +127,30 @@ function App() {
 
     return (
         <div className="p-4">
+           <div className="min-w-full flex flex-row items-center space-x-2 mb-4">
+                <h1 className="text-xl font-bold">Downloads Status</h1>
+                <input
+                    type="text"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder="Enter URL"
+                    className="border px-2 py-1 rounded"
+                />
+                <label className="flex items-center space-x-1">
+                    <input
+                        type="checkbox"
+                        checked={later}
+                        onChange={() => setLater((current) => !current)}
+                    />
+                    <span>Later</span>
+                </label>
+                <button
+                    onClick={handleAdd}
+                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm"
+                >
+                    Add
+                </button>
+            </div>
             <h1 className="text-xl font-bold mb-4">Downloads Status</h1>
             <div className="overflow-x-auto">
                 <table className="min-w-full border border-gray-300">
