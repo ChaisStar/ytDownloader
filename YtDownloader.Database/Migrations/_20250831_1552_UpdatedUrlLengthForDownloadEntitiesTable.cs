@@ -11,13 +11,11 @@ public class _20250831_1552_UpdatedUrlLengthForDownloadEntitiesTable : Migration
         Alter.Table("Downloads")
              .AlterColumn(nameof(DownloadEntity.Url))
              .AsString(2048)
-             .Unique()
              .NotNullable();
 
     public override void Down() =>
         Alter.Table("Downloads")
              .AlterColumn(nameof(DownloadEntity.Url))
              .AsString(256)
-             .Unique()
              .NotNullable();
 }
