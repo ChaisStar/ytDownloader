@@ -127,7 +127,7 @@ function App() {
 
     return (
         <div className="p-4">
-           <div className="min-w-full flex flex-row items-center space-x-2 mb-4">
+            <div className="min-w-full flex flex-row items-center justify-between space-x-2 mb-4">
                 <h1 className="text-xl font-bold">Downloads Status</h1>
                 <input
                     type="text"
@@ -151,7 +151,6 @@ function App() {
                     Add
                 </button>
             </div>
-            <h1 className="text-xl font-bold mb-4">Downloads Status</h1>
             <div className="overflow-x-auto">
                 <table className="min-w-full border border-gray-300">
                     <thead className="bg-gray-100">

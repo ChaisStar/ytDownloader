@@ -53,13 +53,7 @@ public static class IServiceCollectionExtensions
         }
 
         services.AddDbContextPool<YtDownloaderContext>(options => options
-            .UseNpgsql(dbConnectionString, npgsqlOptions =>
-            {
-                npgsqlOptions.EnableRetryOnFailure(
-                    maxRetryCount: 5,
-                    maxRetryDelay: TimeSpan.FromSeconds(10),
-                    errorCodesToAdd: null);
-            }));
+            .UseNpgsql(dbConnectionString));
         services.AddScoped<IDownloadRepository, DownloadEntityRepository>();
 
         services.AddFluentMigratorCore()
