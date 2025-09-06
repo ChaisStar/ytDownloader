@@ -129,7 +129,7 @@ function App() {
         <div className="p-4">
             <div className="min-w-full flex flex-row items-center justify-between space-x-2 mb-4">
                 <h1 className="text-xl font-bold">Downloads Status</h1>
-                <div className="min-w-full flex flex-row items-center space-x-2 mb-4">
+                <div className="flex flex-row items-center space-x-2">
                     <input
                         type="text"
                         value={url}
