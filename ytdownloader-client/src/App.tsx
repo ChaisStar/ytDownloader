@@ -129,27 +129,29 @@ function App() {
         <div className="p-4">
             <div className="min-w-full flex flex-row items-center justify-between space-x-2 mb-4">
                 <h1 className="text-xl font-bold">Downloads Status</h1>
-                <input
-                    type="text"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    placeholder="Enter URL"
-                    className="border px-2 py-1 rounded"
-                />
-                <label className="flex items-center space-x-1">
+                <div className="min-w-full flex flex-row items-center space-x-2 mb-4">
                     <input
-                        type="checkbox"
-                        checked={later}
-                        onChange={() => setLater((current) => !current)}
+                        type="text"
+                        value={url}
+                        onChange={(e) => setUrl(e.target.value)}
+                        placeholder="Enter URL"
+                        className="border px-2 py-1 rounded"
                     />
-                    <span>Later</span>
-                </label>
-                <button
-                    onClick={handleAdd}
-                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm"
-                >
-                    Add
-                </button>
+                    <label className="flex items-center space-x-1">
+                        <input
+                            type="checkbox"
+                            checked={later}
+                            onChange={() => setLater((current) => !current)}
+                        />
+                        <span>Later</span>
+                    </label>
+                    <button
+                        onClick={handleAdd}
+                        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm"
+                    >
+                        Add
+                    </button>
+                </div>
             </div>
             <div className="overflow-x-auto">
                 <table className="min-w-full border border-gray-300">
