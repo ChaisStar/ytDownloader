@@ -3,7 +3,7 @@ using YoutubeDLSharp.Metadata;
 
 namespace YtDownloader.Core.Services;
 
-internal interface IYtDlService
+public interface IYtDlService
 {
     Task<RunResult<string>> RunVideoDownload(string url, bool later = false, Action<DownloadProgress>? downloadProgressHandler = null);
 
