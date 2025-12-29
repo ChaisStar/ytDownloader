@@ -41,6 +41,7 @@ function App() {
     const [downloads, setDownloads] = useState<DownloadItem[]>([]);
     const [url, setUrl] = useState<string>("");
     const [later, setLater] = useState<boolean>(false);
+    const [expandedId, setExpandedId] = useState<number | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -129,7 +130,7 @@ function App() {
     };
 
     // Helper function to get status display text and color
-    const getStatusDisplay = (status: DownloadStatus, errorMessage?: string) => {
+    const getStatusDisplay = (status: DownloadStatus) => {
         switch (status) {
             case DownloadStatus.Pending:
                 return { text: "Pending", className: "text-yellow-600" };
@@ -139,8 +140,8 @@ function App() {
                 return { text: "Finished", className: "text-green-600" };
             case DownloadStatus.Failed:
                 return { 
-                    text: errorMessage ? `Failed: ${errorMessage}` : "Failed", 
-                    className: "text-red-600 text-sm" 
+                    text: "Failed", 
+                    className: "text-red-600" 
                 };
             case DownloadStatus.Cancelled:
                 return { text: "Cancelled", className: "text-gray-600" };
@@ -181,7 +182,7 @@ function App() {
                 <table className="min-w-full border border-gray-300">
                     <thead className="bg-gray-100">
                         <tr>
-                            {["Thumbnail", "Title", "Status", "Size",
+                            {["", "Thumbnail", "Title", "Status", "Size",
                                 "Created", "Duration", "Later", "Action"
                             ].map((header) => (
                                 <th key={header} className="border border-gray-300 px-3 py-2 text-sm text-left">
@@ -192,9 +193,20 @@ function App() {
                     </thead>
                     <tbody>
                         {downloads.map((item) => {
-                            const statusDisplay = getStatusDisplay(item.status, item.errorMessage);
+                            const statusDisplay = getStatusDisplay(item.status);
+                            const isExpanded = expandedId === item.id;
                             return (
+                                <>
                                 <tr key={item.id} className="hover:bg-gray-50">
+                                    <td className="border border-gray-300 px-3 py-2">
+                                        <button
+                                            onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                                            className="text-blue-600 hover:text-blue-800 font-bold"
+                                            title={item.errorMessage ? "Click to view error details" : "No details"}
+                                        >
+                                            {isExpanded ? "▼" : "▶"}
+                                        </button>
+                                    </td>
                                     <td className="border border-gray-300 px-3 py-2">
                                         <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                                             {item.thumbnail ? <img src={item.thumbnail} alt="Thumbnail" className="w-32 h-auto" /> : "N/A"}
@@ -236,6 +248,19 @@ function App() {
                                         </button>
                                     </td>
                                 </tr>
+                                {isExpanded && item.errorMessage && (
+                                    <tr className="bg-red-50">
+                                        <td colSpan={9} className="border border-gray-300 px-3 py-2">
+                                            <div className="text-red-800">
+                                                <div className="font-semibold mb-1">Error Details:</div>
+                                                <div className="whitespace-pre-wrap text-sm font-mono bg-red-100 p-2 rounded border border-red-300 overflow-auto max-h-40">
+                                                    {item.errorMessage}
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
+                                </>
                             );
                         })}
                     </tbody>

@@ -62,7 +62,7 @@ public class Download
         Title = title;
         Status = DownloadStatus.Pending;
         TotalSize = totalSize;
-
+        // Don't clear ErrorMessage - preserve it in case download is retried
         return [nameof(Title), nameof(Status), nameof(TotalSize), nameof(Thumbnail)];
     }
 
@@ -70,6 +70,7 @@ public class Download
     {
         Status = DownloadStatus.Downloading;
         Started = DateTime.UtcNow;
+        // Preserve ErrorMessage - don't clear it when retrying
         return [nameof(Status), nameof(Started)];
     }
 

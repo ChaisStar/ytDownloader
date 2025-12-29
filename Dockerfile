@@ -30,15 +30,15 @@ WORKDIR /app
 
 # Оновлення системи та встановлення Python3, pip, ffmpeg, yt-dlp
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl ca-certificates xz-utils python3 python3-pip pipx && \
+    apt-get install -y --no-install-recommends curl ca-certificates xz-utils python3 python3-pip pipx nodejs npm && \
     update-ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
 # Додаємо pipx у PATH перед встановленням yt-dlp
 ENV PATH="/root/.local/bin:$PATH"
 
-# Використання pipx для встановлення yt-dlp
-RUN pipx install yt-dlp
+# Встановлення yt-dlp з залежностями за замовчуванням (включає yt-dlp-ejs для розв'язання JavaScript-викликів YouTube)
+RUN pipx install "yt-dlp[default]"
 
 # Встановлення найновішого ffmpeg
 RUN curl -L https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz | tar -xJ && \
