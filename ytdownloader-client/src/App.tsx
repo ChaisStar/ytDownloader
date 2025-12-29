@@ -14,13 +14,14 @@ function formatDate(date: undefined | string | Date, f: string) {
 
 function calculateDuration(started?: string | Date, finished?: string | Date) {
     if (!started) return "-";
-    const end = finished ? new Date(finished) : new Date(new Date().toUTCString());
-    const duration = differenceInSeconds(end, new Date(started));
+    const startDate = new Date(started);
+    const endDate = finished ? new Date(finished) : new Date();
+    const duration = differenceInSeconds(endDate, startDate);
     return `${Math.floor(duration / 60)}m ${duration % 60}s`;
 }
 
 function formatFileSize(bytes?: number | string): string {
-    if (!bytes || isNaN(Number(bytes))) return "-";
+    if (!bytes || Number.isNaN(Number(bytes))) return "-";
     const size = Number(bytes);
     const units = ["B", "KB", "MB", "GB", "TB"];
     let unitIndex = 0;
@@ -50,9 +51,29 @@ function App() {
                     ...item,
                     progress: Number(item.progress),
                 }));
-                processedData.sort((a, b) => 
-                    new Date(b.created).getTime() - new Date(a.created).getTime()
-                );
+                
+                // Custom sort order: Downloading, Failed, Pending, then Finished
+                const statusOrder: { [key in DownloadStatus]: number } = {
+                    [DownloadStatus.Downloading]: 0,  // In progress first
+                    [DownloadStatus.Failed]: 1,        // Failed second
+                    [DownloadStatus.Pending]: 2,       // Processing (pending) third
+                    [DownloadStatus.Finished]: 3,      // Finished last
+                    [DownloadStatus.Cancelled]: 4,     // Cancelled at end
+                };
+                
+                processedData.sort((a, b) => {
+                    const statusDiff = statusOrder[a.status] - statusOrder[b.status];
+                    if (statusDiff !== 0) return statusDiff;
+                    
+                    // Within same status, prioritize items without "later" flag
+                    if (a.later !== b.later) {
+                        return a.later ? 1 : -1;  // false (later: false) comes first
+                    }
+                    
+                    // Within same status and later flag, show newest first
+                    return new Date(b.created).getTime() - new Date(a.created).getTime();
+                });
+                
                 setDownloads(processedData);
             } catch (error) {
                 console.error("Error fetching download status:", error);
@@ -108,7 +129,7 @@ function App() {
     };
 
     // Helper function to get status display text and color
-    const getStatusDisplay = (status: DownloadStatus) => {
+    const getStatusDisplay = (status: DownloadStatus, errorMessage?: string) => {
         switch (status) {
             case DownloadStatus.Pending:
                 return { text: "Pending", className: "text-yellow-600" };
@@ -117,7 +138,10 @@ function App() {
             case DownloadStatus.Finished:
                 return { text: "Finished", className: "text-green-600" };
             case DownloadStatus.Failed:
-                return { text: "Failed", className: "text-red-600" };
+                return { 
+                    text: errorMessage ? `Failed: ${errorMessage}` : "Failed", 
+                    className: "text-red-600 text-sm" 
+                };
             case DownloadStatus.Cancelled:
                 return { text: "Cancelled", className: "text-gray-600" };
             default:
@@ -168,7 +192,7 @@ function App() {
                     </thead>
                     <tbody>
                         {downloads.map((item) => {
-                            const statusDisplay = getStatusDisplay(item.status);
+                            const statusDisplay = getStatusDisplay(item.status, item.errorMessage);
                             return (
                                 <tr key={item.id} className="hover:bg-gray-50">
                                     <td className="border border-gray-300 px-3 py-2">

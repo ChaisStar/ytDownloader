@@ -10,6 +10,7 @@ export type DownloadItem = {
     totalSize?: number;
     speed?: string;
     eta?: string;
+    errorMessage?: string;
     created: Date;
     started?: Date;
     finished?: Date;

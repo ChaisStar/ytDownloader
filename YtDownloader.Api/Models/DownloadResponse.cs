@@ -18,4 +18,5 @@ public class DownloadResponse(Download download)
     public DateTime? Started { get; private set; } = download.Started;
     public DateTime? Finished { get; private set; } = download.Finished;
     public bool Later { get; } = download.Later;
+    public string? ErrorMessage { get; private set; } = download.ErrorMessage;
 }

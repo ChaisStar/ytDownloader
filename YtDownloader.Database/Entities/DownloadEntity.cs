@@ -18,9 +18,10 @@ internal class DownloadEntity
     public DateTime? Started { get; set; }
     public DateTime? Finished { get; set; }
     public bool Later { get; set; } = false;
+    public string? ErrorMessage { get; set; }
 
     public static implicit operator Download(DownloadEntity downloadEntity) =>
-        new(downloadEntity.Id, downloadEntity.Url, downloadEntity.Thumbnail, downloadEntity.Title, downloadEntity.Status,
+        Download.CreateFromDatabase(downloadEntity.Id, downloadEntity.Url, downloadEntity.Thumbnail, downloadEntity.Title, downloadEntity.Status,
             downloadEntity.Progress, downloadEntity.TotalSize, downloadEntity.Speed, downloadEntity.ETA,
-            downloadEntity.Created, downloadEntity.Started, downloadEntity.Finished, downloadEntity.Later);
+            downloadEntity.Created, downloadEntity.Started, downloadEntity.Finished, downloadEntity.Later, downloadEntity.ErrorMessage);
 }

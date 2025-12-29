@@ -31,9 +31,6 @@ public static partial class StringExtensions
         // Заміна всіх не-дозволених символів на підкреслення (дозволяємо літери, цифри, _-, пунктуацію, символи)
         baseName = ExtraSymbolsRegex().Replace(baseName, "_");
 
-        // Видалення емодзі, якщо не потрібні (опціонально)
-        // baseName = Regex.Replace(baseName, @"[\p{So}]", "_");
-
         // Заміна пробілів і множинних підкреслень
         baseName = WhitespacesRegex().Replace(baseName, "_");
         baseName = CombinedUnderscoresRegex().Replace(baseName, "_");
@@ -62,6 +59,65 @@ public static partial class StringExtensions
         return string.IsNullOrWhiteSpace(sanitizedName)
             ? $"default_video_{DateTime.UtcNow.Ticks}.mp4"
             : sanitizedName;
+    }
+
+    /// <summary>
+    /// Generates a unique filename by appending timestamp if file exists, or progressively shortening name if too long.
+    /// </summary>
+    public static string GetUniqueFileName(this string fileName, string directoryPath)
+    {
+        if (string.IsNullOrWhiteSpace(fileName))
+            return $"default_video_{DateTime.UtcNow.Ticks}.mp4";
+
+        var extension = Path.GetExtension(fileName);
+        var baseName = Path.GetFileNameWithoutExtension(fileName);
+        var fullPath = Path.Combine(directoryPath, fileName);
+
+        // If file doesn't exist, use the original name
+        if (!File.Exists(fullPath))
+        {
+            return fileName;
+        }
+
+        // File exists - add timestamp before extension
+        var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+        var uniqueName = $"{baseName}_{timestamp}{extension}";
+        var uniquePath = Path.Combine(directoryPath, uniqueName);
+
+        // If timestamped file also exists (extremely unlikely), progressively shorten base name
+        if (File.Exists(uniquePath))
+        {
+            return ShortenFileNameProgressively(baseName, extension, directoryPath, timestamp);
+        }
+
+        return uniqueName;
+    }
+
+    /// <summary>
+    /// Progressively shortens filename by removing one character at a time from the end of the base name.
+    /// Used when standard deduplication isn't enough (e.g., filename already at max length).
+    /// </summary>
+    private static string ShortenFileNameProgressively(string baseName, string extension, string directoryPath, string timestamp)
+    {
+        var maxAttempts = baseName.Length;
+
+        for (int i = 1; i <= maxAttempts; i++)
+        {
+            if (baseName.Length - i <= 0)
+                break;
+
+            var shortenedBase = baseName[..(baseName.Length - i)];
+            var candidateName = $"{shortenedBase}_{timestamp}{extension}";
+            var candidatePath = Path.Combine(directoryPath, candidateName);
+
+            if (!File.Exists(candidatePath))
+            {
+                return candidateName;
+            }
+        }
+
+        // Ultimate fallback - use only timestamp
+        return $"video_{timestamp}{extension}";
     }
 
     [GeneratedRegex(@"[^\p{L}\p{N}\p{P}\p{S}_-]")]

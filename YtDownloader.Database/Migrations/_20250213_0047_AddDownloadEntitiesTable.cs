@@ -5,7 +5,7 @@ using YtDownloader.Database.Entities;
 namespace YtDownloader.Database.Migrations;
 
 [Migration(2025_02_13_00_47, "Added table 'Downloads'")]
-public class _20250213_0047_AddDownloadEntitiesTable: Migration
+public class AddDownloadEntitiesTable : Migration
 {
     public override void Up()
     {

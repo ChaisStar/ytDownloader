@@ -26,23 +26,34 @@ public class YtDownloaderQueue(IServiceProvider serviceProvider, ILogger<YtDownl
                 await UpdateInfoAsync(download);
             }
 
-            var failedDownloads = await DownloadService.GetFailedDownloads();
-            foreach (var download in failedDownloads)
-            {
-                await UpdateInfoAsync(download);
-                _queueIds.Add(download.Id);
-                _ = RunAsync(download);
-            }
-
             var queuedDownloads = await DownloadService.GetPendingDownloads();
-            var newDownloads = queuedDownloads.Where(qi => !_queueIds.Contains(qi.Id)).ToList();
+            var newPending = queuedDownloads.Where(qi => !_queueIds.Contains(qi.Id)).ToList();
+            
+            var failedDownloads = await DownloadService.GetFailedDownloads();
+            var newFailed = failedDownloads.Where(fd => !_queueIds.Contains(fd.Id)).ToList();
+            
+            // Create a set of failed IDs for efficient lookup
+            var failedIds = newFailed.Select(d => d.Id).ToHashSet();
+            
+            // Combine all new downloads and sort: pending first, then failed
+            var allDownloads = new List<Download>();
+            allDownloads.AddRange(newPending);
+            allDownloads.AddRange(newFailed);
+            
+            // Sort by: pending status first, then non-"later", then by creation date
+            var sortedDownloads = allDownloads
+                .OrderBy(d => failedIds.Contains(d.Id) ? 1 : 0)  // Pending (0) before Failed (1)
+                .ThenBy(d => d.Later)  // Non-"later" before "later"
+                .ThenByDescending(d => d.Created)  // Newest first
+                .ToList();
 
-            foreach (var download in newDownloads)
+            foreach (var download in sortedDownloads)
             {
                 await UpdateInfoAsync(download);
                 _queueIds.Add(download.Id);
                 _ = RunAsync(download);
             }
+
             await Task.Delay(CheckTimeout, stoppingToken);
         }
 
@@ -55,9 +66,16 @@ public class YtDownloaderQueue(IServiceProvider serviceProvider, ILogger<YtDownl
         {
             await DownloadService.UpdateInfo(download);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            logger.LogError("Failed to update download info: {id}.", download.Id);
+            logger.LogError(ex, "Failed to update download info for {DownloadId}", download.Id);
+            // Mark as failed with error message
+            var errorMessage = $"Failed to fetch video info: {ex.Message}";
+            var failedDownload = download;
+            failedDownload.Fail(errorMessage);
+            using var scope = serviceProvider.CreateScope();
+            var repo = scope.ServiceProvider.GetRequiredService<IDownloadService>();
+            await repo.Fail(failedDownload);
         }
     }
 
@@ -68,10 +86,12 @@ public class YtDownloaderQueue(IServiceProvider serviceProvider, ILogger<YtDownl
         {
             await DownloadService.Start(download);
         }
-        catch(Exception)
+        catch (Exception ex)
         {
+            var errorMessage = $"Download error: {ex.Message}";
+            download.Fail(errorMessage);
             await DownloadService.Fail(download);
-            logger.LogError("Failed to start download: {id}.", download.Id);
+            logger.LogError(ex, "Failed to start download {DownloadId}", download.Id);
         }
         finally
         {

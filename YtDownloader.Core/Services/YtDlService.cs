@@ -33,4 +33,8 @@ public class YtDlService(YtDlVideoOptionSet optionSet, YtDlMp3OptionSet mp3Optio
     public Task<RunResult<VideoData>> GetVideoData(string url) => youtubeDL.RunVideoDataFetch(url, overrideOptions: optionSet.Value);
 
     public Task<RunResult<string>> RunMp3PlaylistDownload(string url) => mp3Dl.RunVideoDownload(url, overrideOptions: mp3OptionSet.Value);
+
+    public string GetVersion () => youtubeDL.Version;
+
+    public Task<string> Update () => youtubeDL.RunUpdate();
 }

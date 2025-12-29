@@ -9,8 +9,6 @@ namespace YtDownloader.Core.Services;
 
 internal class DownloadService(IDownloadRepository repository, IYtDlService ytDlService) : IDownloadService
 {
-    private const string None = "none";
-
     public Task<IReadOnlyList<Download>> GetPendingDownloads() => repository.Get(DownloadStatus.Pending);
 
     public Task<IReadOnlyList<Download>> GetFailedDownloads() => repository.Get(DownloadStatus.Failed);
@@ -20,6 +18,11 @@ internal class DownloadService(IDownloadRepository repository, IYtDlService ytDl
     public async Task UpdateInfo(Download download)
     {
         var metadata = await ytDlService.GetVideoData(download.Url);
+        
+        if (!metadata.Success)
+        {
+            throw new InvalidOperationException($"Failed to fetch video metadata: {metadata.ErrorOutput}");
+        }
 
         // Best video (720p to 1080p, 30 FPS, ~5Mbps max)
         var bestVideo = metadata.Data.Formats?
@@ -59,14 +62,41 @@ internal class DownloadService(IDownloadRepository repository, IYtDlService ytDl
     {
         var columnsToUpdate = item.Start();
         await repository.Update(item, columnsToUpdate);
+        
         var result = await ytDlService.RunVideoDownload(item.Url, item.Later, p => HandleProgress(item, p));
+        
+        if (!result.Success)
+        {
+            var errorMessage = $"Download failed: {result.ErrorOutput}";
+            var failColumns = item.Fail(errorMessage);
+            await repository.Update(item, failColumns);
+            return;
+        }
+        
         var fileSize = new FileInfo(result.Data).Length;
         columnsToUpdate = item.Finish(fileSize);
         await repository.Update(item, columnsToUpdate);
 
+        var youtubeDirectory = $"/tmp/youtube{(item.Later ? "_later" : "")}";
+        Directory.CreateDirectory(youtubeDirectory);
+        
         var filename = result.Data.SanitizeFileName();
-        File.Move(result.Data, $"/tmp/youtube{(item.Later ? "_later" : "")}/{filename}");
-        File.Create($"/tmp/finished/{filename}.done");
+        var finalFilename = filename.GetUniqueFileName(youtubeDirectory);
+        var finalPath = Path.Combine(youtubeDirectory, finalFilename);
+        
+        File.Move(result.Data, finalPath, overwrite: false);
+        
+        // Create marker file with the same naming strategy
+        var finishedDirectory = "/tmp/finished";
+        Directory.CreateDirectory(finishedDirectory);
+        var doneFileName = $"{finalFilename}.done";
+        var donePath = doneFileName.GetUniqueFileName(finishedDirectory);
+        var finalDonePath = Path.Combine(finishedDirectory, donePath);
+        
+        using (var doneFile = File.Create(finalDonePath))
+        {
+            // File created successfully
+        }
     }
 
     private void HandleProgress(Download item, DownloadProgress progress)
@@ -84,14 +114,16 @@ internal class DownloadService(IDownloadRepository repository, IYtDlService ytDl
                 repository.Update(item, columnsToUpdate).GetAwaiter().GetResult();
             }
         }
-        catch
+        catch (Exception ex)
         {
+            // Progress updates are non-critical, log but don't fail the download
+            Console.WriteLine($"Error updating progress for download {item.Id}: {ex.Message}");
         }
     }
 
-    public Task Fail(Download item)
+    public Task Fail(Download download)
     {
-        var columnsToUpdate = item.Fail();
-        return repository.Update(item, columnsToUpdate);
+        var columnsToUpdate = download.Fail();
+        return repository.Update(download, columnsToUpdate);
     }
 }
