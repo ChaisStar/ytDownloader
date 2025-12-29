@@ -21,7 +21,7 @@ internal class DownloadService(IDownloadRepository repository, IYtDlService ytDl
         
         if (!metadata.Success)
         {
-            throw new InvalidOperationException($"Failed to fetch video metadata: {metadata.ErrorOutput}");
+            throw new InvalidOperationException($"Failed to fetch video metadata: {string.Join(Environment.NewLine, metadata.ErrorOutput)}");
         }
 
         // Best video (720p to 1080p, 30 FPS, ~5Mbps max)
@@ -67,7 +67,7 @@ internal class DownloadService(IDownloadRepository repository, IYtDlService ytDl
         
         if (!result.Success)
         {
-            var errorMessage = $"Download failed: {result.ErrorOutput}";
+            var errorMessage = $"Download failed: {string.Join(Environment.NewLine, result.ErrorOutput)}";
             var failColumns = item.Fail(errorMessage);
             await repository.Update(item, failColumns);
             return;

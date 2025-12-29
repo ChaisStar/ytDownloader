@@ -11,7 +11,6 @@ public class YtDownloaderQueue(IServiceProvider serviceProvider, ILogger<YtDownl
     private const int MaxSimultanouslyDownloads = 5;
     private const int CheckTimeout = 5 * 1000;
 
-    private readonly HashSet<int> _queueIds = [];
     private readonly SemaphoreSlim _semaphoreSlim = new(MaxSimultanouslyDownloads, MaxSimultanouslyDownloads);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -27,18 +26,15 @@ public class YtDownloaderQueue(IServiceProvider serviceProvider, ILogger<YtDownl
             }
 
             var queuedDownloads = await DownloadService.GetPendingDownloads();
-            var newPending = queuedDownloads.Where(qi => !_queueIds.Contains(qi.Id)).ToList();
-            
             var failedDownloads = await DownloadService.GetFailedDownloads();
-            var newFailed = failedDownloads.Where(fd => !_queueIds.Contains(fd.Id)).ToList();
             
             // Create a set of failed IDs for efficient lookup
-            var failedIds = newFailed.Select(d => d.Id).ToHashSet();
+            var failedIds = failedDownloads.Select(d => d.Id).ToHashSet();
             
-            // Combine all new downloads and sort: pending first, then failed
+            // Combine all downloads and sort: pending first, then failed
             var allDownloads = new List<Download>();
-            allDownloads.AddRange(newPending);
-            allDownloads.AddRange(newFailed);
+            allDownloads.AddRange(queuedDownloads);
+            allDownloads.AddRange(failedDownloads);
             
             // Sort by: pending status first, then non-"later", then by creation date
             var sortedDownloads = allDownloads
@@ -50,7 +46,6 @@ public class YtDownloaderQueue(IServiceProvider serviceProvider, ILogger<YtDownl
             foreach (var download in sortedDownloads)
             {
                 await UpdateInfoAsync(download);
-                _queueIds.Add(download.Id);
                 _ = RunAsync(download);
             }
 
