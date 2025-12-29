@@ -70,8 +70,8 @@ public class Download
     {
         Status = DownloadStatus.Downloading;
         Started = DateTime.UtcNow;
-        // Preserve ErrorMessage - don't clear it when retrying
-        return [nameof(Status), nameof(Started)];
+        // Don't clear ErrorMessage - include it explicitly to preserve during retry
+        return [nameof(Status), nameof(Started), nameof(ErrorMessage)];
     }
 
     public string[] Finish(long fileSize)
@@ -82,7 +82,8 @@ public class Download
         Speed = null;
         Progress = 100;
         TotalSize = fileSize;
-        return [nameof(Status), nameof(Finished), nameof(ETA), nameof(Speed), nameof(Progress), nameof(TotalSize)];
+        ErrorMessage = null; // Clear error on success
+        return [nameof(Status), nameof(Finished), nameof(ETA), nameof(Speed), nameof(Progress), nameof(TotalSize), nameof(ErrorMessage)];
     }
 
     public string[] Fail(string? errorMessage = null)

@@ -38,7 +38,11 @@ RUN apt-get update && \
 ENV PATH="/root/.local/bin:$PATH"
 
 # Встановлення yt-dlp з залежностями за замовчуванням (включає yt-dlp-ejs для розв'язання JavaScript-викликів YouTube)
-RUN pipx install "yt-dlp[default]"
+# Створюємо конфігураційний файл yt-dlp для включення JavaScript runtime та remote components
+RUN pipx install "yt-dlp[default]" && \
+    mkdir -p /root/.config/yt-dlp && \
+    (echo "js-runtimes node" && \
+     echo "remote-components ejs:npm") > /root/.config/yt-dlp/config.txt
 
 # Встановлення найновішого ffmpeg
 RUN curl -L https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz | tar -xJ && \

@@ -198,11 +198,12 @@ function App() {
                             return (
                                 <>
                                 <tr key={item.id} className="hover:bg-gray-50">
-                                    <td className="border border-gray-300 px-3 py-2">
+                                    <td className="border border-gray-300 px-3 py-2 text-center">
                                         <button
                                             onClick={() => setExpandedId(isExpanded ? null : item.id)}
-                                            className="text-blue-600 hover:text-blue-800 font-bold"
+                                            className="text-blue-600 hover:text-blue-800 font-bold cursor-pointer w-6 h-6"
                                             title={item.errorMessage ? "Click to view error details" : "No details"}
+                                            type="button"
                                         >
                                             {isExpanded ? "▼" : "▶"}
                                         </button>
