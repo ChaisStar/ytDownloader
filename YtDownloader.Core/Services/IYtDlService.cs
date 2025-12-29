@@ -10,4 +10,6 @@ internal interface IYtDlService
     Task<RunResult<VideoData>> GetVideoData(string url);
 
     Task<RunResult<string>> RunMp3PlaylistDownload(string url);
+
+    string GetVersion();
 }

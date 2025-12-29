@@ -7,9 +7,8 @@ using YtDownloader.Core.Services;
 
 namespace YtDownloader.Api.Features.YtDlp;
 
-public class YtDlpVersionEndpoint() : EndpointWithoutRequest<string>
+public class YtDlpVersionEndpoint(IYtDlService ytDlService) : EndpointWithoutRequest<string>
 {
-    public IYtDlpService YtDlpService { get; } = null!;
     public override void Configure()
     {
         Get("/ytdlp/version");
@@ -18,7 +17,7 @@ public class YtDlpVersionEndpoint() : EndpointWithoutRequest<string>
     }
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var version = await YtDlpService.GetVersion();
+        var version = ytDlService.GetVersion();
         await Send.OkAsync(version, cancellation: ct);
     }
 }
