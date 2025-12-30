@@ -35,7 +35,7 @@ public class YtDlService(YtDlVideoOptionSet optionSet, YtDlVideoOptionSetMergeFl
             progress: downloadProgressHandler is null ? null : new Progress<DownloadProgress>(downloadProgressHandler));
         
         // If FFmpeg failed, try merge flexible format
-        if (!result.Success && result.ErrorOutput?.Any(e => e.Contains("ffmpeg")) == true)
+        if (!result.Success && result.ErrorOutput?.Any(e => e.Contains("ffmpeg") || e.Contains("code -11")) == true)
         {
             Console.WriteLine("Primary format failed with FFmpeg error, trying flexible merge format...");
             result = await youtubeDL.RunVideoDownload(url, overrideOptions: mergeFlexibleOptionSet.Value, 
@@ -43,7 +43,7 @@ public class YtDlService(YtDlVideoOptionSet optionSet, YtDlVideoOptionSetMergeFl
         }
         
         // If still failing, try without thumbnail
-        if (!result.Success && result.ErrorOutput?.Any(e => e.Contains("ffmpeg")) == true)
+        if (!result.Success && result.ErrorOutput?.Any(e => e.Contains("ffmpeg") || e.Contains("code -11")) == true)
         {
             Console.WriteLine("Flexible merge format failed with FFmpeg error, trying without thumbnail...");
             result = await youtubeDL.RunVideoDownload(url, overrideOptions: noThumbnailOptionSet.Value, 

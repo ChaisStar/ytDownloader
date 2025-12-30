@@ -21,8 +21,8 @@ public class YtDlVideoOptionSetMergeFlexible : Lazy<OptionSet>
     public YtDlVideoOptionSetMergeFlexible() : base(new OptionSet
     {
         MergeOutputFormat = DownloadMergeFormat.Mp4,
-        // Try merging best video + best audio without constraints
-        Format = "bestvideo+bestaudio/best",
+        // Try merging best video + best audio without height/fps constraints
+        Format = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best",
         EmbedThumbnail = true,
         Cookies = "/tmp/cookies/cookies.txt",
     })
