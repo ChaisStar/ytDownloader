@@ -328,7 +328,7 @@ function App() {
                     <div className="flex-1 min-w-0">
                         {cookiesInfo.exists ? (
                             <p className="text-gray-700 truncate">
-                                Cookies: {cookiesInfo.size > 0 && <span>{(cookiesInfo.size / 1024).toFixed(1)}KB</span>}
+                                Cookies: {cookiesInfo.lastModified && <span>{new Date(cookiesInfo.lastModified).toLocaleDateString()}</span>}
                             </p>
                         ) : (
                             <p className="text-gray-700">Cookies: Not configured</p>
