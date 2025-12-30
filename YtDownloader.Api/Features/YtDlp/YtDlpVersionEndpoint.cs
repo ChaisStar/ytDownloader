@@ -15,7 +15,7 @@ public class YtDlpVersionEndpoint(IYtDlService ytDlService) : EndpointWithoutReq
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var version = ytDlService.GetVersion();
+        var version = await ytDlService.GetVersion();
         await Send.OkAsync(version, cancellation: ct);
     }
 }

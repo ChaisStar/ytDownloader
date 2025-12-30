@@ -11,5 +11,5 @@ public interface IYtDlService
 
     Task<RunResult<string>> RunMp3PlaylistDownload(string url);
 
-    string GetVersion();
+    Task<string> GetVersion();
 }

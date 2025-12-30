@@ -20,8 +20,8 @@ public class YtDlpUpdateEndpoint : EndpointWithoutRequest<UpdateResponse>
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = "/root/.local/bin/pipx",
-                    Arguments = "install --upgrade yt-dlp",
+                    FileName = "/bin/sh",
+                    Arguments = "-c \"pipx install --upgrade yt-dlp\"",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -32,7 +32,7 @@ public class YtDlpUpdateEndpoint : EndpointWithoutRequest<UpdateResponse>
             process.Start();
             var output = await process.StandardOutput.ReadToEndAsync();
             var error = await process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
+            await process.WaitForExitAsync(ct);
 
             if (process.ExitCode == 0)
             {
@@ -40,12 +40,12 @@ public class YtDlpUpdateEndpoint : EndpointWithoutRequest<UpdateResponse>
             }
             else
             {
-                ThrowError(error, StatusCodes.Status500InternalServerError);
+                ThrowError($"Failed to update yt-dlp: {error}", StatusCodes.Status500InternalServerError);
             }
         }
         catch (Exception ex)
         {
-            ThrowError(ex.Message, StatusCodes.Status500InternalServerError);
+            ThrowError($"Error updating yt-dlp: {ex.Message}", StatusCodes.Status500InternalServerError);
         }
     }
 }

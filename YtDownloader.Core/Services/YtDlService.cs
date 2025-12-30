@@ -1,6 +1,7 @@
 ﻿using YoutubeDLSharp;
 using YoutubeDLSharp.Metadata;
 using YoutubeDLSharp.Options;
+using System.Diagnostics;
 
 namespace YtDownloader.Core.Services;
 
@@ -82,7 +83,34 @@ public class YtDlService(YtDlVideoOptionSet optionSet, YtDlVideoOptionSetMergeFl
 
     public Task<RunResult<string>> RunMp3PlaylistDownload(string url) => mp3Dl.RunVideoDownload(url, overrideOptions: mp3OptionSet.Value);
 
-    public string GetVersion () => youtubeDL.Version;
+    public async Task<string> GetVersion()
+    {
+        try
+        {
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "/bin/sh",
+                    Arguments = "-c \"yt-dlp --version\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
 
-    public Task<string> Update () => youtubeDL.RunUpdate();
+            process.Start();
+            var output = await process.StandardOutput.ReadToEndAsync();
+            await process.WaitForExitAsync();
+            
+            return output.Trim() ?? "Unknown";
+        }
+        catch
+        {
+            return "Unknown";
+        }
+    }
+
+    public Task<string> Update() => youtubeDL.RunUpdate();
 }
