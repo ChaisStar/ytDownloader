@@ -30,7 +30,8 @@ WORKDIR /app
 
 # Оновлення системи та встановлення Python3, pip, ffmpeg, yt-dlp, та Deno
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl ca-certificates xz-utils python3 python3-pip pipx nodejs npm && \
+    apt-get install -y --no-install-recommends \
+    curl ca-certificates xz-utils unzip python3 python3-pip pipx nodejs npm && \
     update-ca-certificates && \
     curl -fsSL https://deno.land/x/install/install.sh | sh && \
     rm -rf /var/lib/apt/lists/*

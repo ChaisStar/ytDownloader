@@ -213,7 +213,7 @@ function App() {
                                             {item.thumbnail ? <img src={item.thumbnail} alt="Thumbnail" className="w-32 h-auto" /> : "N/A"}
                                         </a>
                                     </td>
-                                    <td className="border border-gray-300 px-3 py-2">{item.title ?? "Undefined"}</td>
+                                    <td className="border border-gray-300 px-3 py-2">{item.title ?? item.url}</td>
                                     <td className="border border-gray-300 px-3 py-2">
                                         {item.status === DownloadStatus.Downloading ? (
                                             <div className="flex flex-col space-y-1">
