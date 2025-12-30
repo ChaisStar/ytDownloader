@@ -19,7 +19,9 @@ function calculateDuration(started?: string | Date, finished?: string | Date) {
     const startDate = new Date(started);
     const endDate = finished ? new Date(finished) : new Date();
     const duration = differenceInSeconds(endDate, startDate);
-    return `${Math.floor(duration / 60)}m ${duration % 60}s`;
+    const minutes = Math.floor(duration / 60);
+    const seconds = duration % 60;
+    return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
 }
 
 function formatFileSize(bytes?: number | string): string {
@@ -271,91 +273,82 @@ function App() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
+        <div className="min-h-screen bg-gray-50 p-3 md:p-6">
             {/* Header */}
-            <div className="mb-6">
-                <h1 className="text-3xl font-bold text-gray-900 mb-4">YouTube Downloader</h1>
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                    <div className="flex flex-col sm:flex-row gap-3 items-center">
+            <div className="mb-4 md:mb-6">
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 md:mb-4">YouTube Downloader</h1>
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 md:p-4">
+                    <div className="flex flex-col gap-2">
                         <input
                             type="text"
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
                             placeholder="Enter YouTube URL"
-                            className="border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 flex-1 min-w-0"
+                            className="border border-gray-300 px-3 py-2 rounded text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                         />
-                        <label className="flex items-center space-x-2 text-gray-700 font-medium">
-                            <input
-                                type="checkbox"
-                                checked={later}
-                                onChange={() => setLater((current) => !current)}
-                                className="w-4 h-4 rounded border-gray-300 cursor-pointer"
-                            />
-                            <span>Download Later</span>
-                        </label>
-                        <button
-                            onClick={handleAdd}
-                            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-2 text-sm rounded whitespace-nowrap"
-                        >
-                            Add Download
-                        </button>
+                        <div className="flex items-center justify-between gap-2">
+                            <label className="flex items-center space-x-2 text-gray-700 font-medium text-sm md:text-base">
+                                <input
+                                    type="checkbox"
+                                    checked={later}
+                                    onChange={() => setLater((current) => !current)}
+                                    className="w-4 h-4 rounded border-gray-300 cursor-pointer"
+                                />
+                                <span>Later</span>
+                            </label>
+                            <button
+                                onClick={handleAdd}
+                                className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 text-sm md:text-base rounded flex-1"
+                            >
+                                Add
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Info Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div className="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-300 rounded-lg p-4 shadow-sm">
-                    <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <span className="text-blue-600 font-bold">⬆</span>
-                        </div>
-                        <div className="flex-1">
-                            <p className="text-sm text-gray-600 font-medium">yt-dlp Version</p>
-                            <p className="text-lg font-semibold text-gray-900">{ytDlpVersion || "Loading..."}</p>
-                        </div>
-                        <button
-                            onClick={handleUpdateYtDlp}
-                            disabled={isUpdating}
-                            className="bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white font-semibold py-1 px-2 text-sm rounded whitespace-nowrap"
-                        >
-                            {isUpdating ? "Updating..." : "Update"}
-                        </button>
+            {/* Info Section - Hidden on mobile */}
+            <div className="hidden md:flex flex-row gap-2 mb-6 text-xs">
+                <div className="flex items-center space-x-2 bg-gray-100 border border-gray-300 rounded px-3 py-2">
+                    <span className="text-blue-600 font-bold">⬆</span>
+                    <div className="flex-1">
+                        <p className="text-gray-600 font-medium">yt-dlp: {ytDlpVersion || "..."}</p>
                     </div>
+                    <button
+                        onClick={handleUpdateYtDlp}
+                        disabled={isUpdating}
+                        className="bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white font-semibold py-0.5 px-2 rounded text-xs whitespace-nowrap"
+                    >
+                        {isUpdating ? "..." : "Update"}
+                    </button>
                 </div>
 
-                <div className="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-300 rounded-lg p-4 shadow-sm">
-                    <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                            <span className="text-green-600 font-bold">🍪</span>
-                        </div>
-                        <div className="flex-1">
-                            <p className="text-sm text-gray-600 font-medium">Cookies File</p>
-                            {cookiesInfo.exists ? (
-                                <p className="text-sm text-gray-700">
-                                    {cookiesInfo.size > 0 && <span>{(cookiesInfo.size / 1024).toFixed(2)} KB • </span>}
-                                    {cookiesInfo.lastModified && <span>{new Date(cookiesInfo.lastModified).toLocaleString()}</span>}
-                                </p>
-                            ) : (
-                                <p className="text-sm text-gray-700">Not configured</p>
-                            )}
-                        </div>
+                <div className="flex items-center space-x-2 bg-gray-100 border border-gray-300 rounded px-3 py-2 flex-1">
+                    <span className="text-green-600 font-bold">🍪</span>
+                    <div className="flex-1 min-w-0">
+                        {cookiesInfo.exists ? (
+                            <p className="text-gray-700 truncate">
+                                Cookies: {cookiesInfo.size > 0 && <span>{(cookiesInfo.size / 1024).toFixed(1)}KB</span>}
+                            </p>
+                        ) : (
+                            <p className="text-gray-700">Cookies: Not configured</p>
+                        )}
                     </div>
                 </div>
             </div>
 
             {/* Tab Navigation */}
-            <div className="mb-6 flex justify-between items-center border-b-2 border-gray-200">
-                <div className="flex space-x-2">
+            <div className="mb-4 md:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b-2 border-gray-200">
+                <div className="flex space-x-2 w-full sm:w-auto">
                     <button
                         onClick={() => setActiveTab("current")}
-                        className={`px-4 py-3 font-semibold transition-colors duration-200 border-b-2 ${activeTab === "current" ? "text-blue-600 border-blue-600" : "text-gray-600 hover:text-gray-900 border-transparent"}`}
+                        className={`px-3 md:px-4 py-2 md:py-3 text-sm md:text-base font-semibold transition-colors duration-200 border-b-2 ${activeTab === "current" ? "text-blue-600 border-blue-600" : "text-gray-600 hover:text-gray-900 border-transparent"}`}
                     >
                         Current ({downloads.length})
                     </button>
                     <button
                         onClick={() => setActiveTab("archive")}
-                        className={`px-4 py-3 font-semibold transition-colors duration-200 border-b-2 ${activeTab === "archive" ? "text-blue-600 border-blue-600" : "text-gray-600 hover:text-gray-900 border-transparent"}`}
+                        className={`px-3 md:px-4 py-2 md:py-3 text-sm md:text-base font-semibold transition-colors duration-200 border-b-2 ${activeTab === "archive" ? "text-blue-600 border-blue-600" : "text-gray-600 hover:text-gray-900 border-transparent"}`}
                     >
                         Archive ({archivedDownloads.length})
                     </button>
@@ -363,20 +356,18 @@ function App() {
                 {activeTab === "archive" && archivedDownloads.length > 0 && (
                     <button
                         onClick={handleDeleteArchive}
-                        className="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-2 text-sm rounded"
+                        className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-3 text-sm rounded w-full sm:w-auto"
                     >
-                        Delete All Archive
+                        Delete All
                     </button>
                 )}
             </div>
             <div className="overflow-x-auto rounded-lg shadow-md border border-gray-200">
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="min-w-full divide-y divide-gray-200 text-xs md:text-sm">
                     <thead className="bg-gradient-to-r from-gray-800 to-gray-700">
                         <tr>
-                            {["", "Thumbnail", "Title", "Status", "Size",
-                                "Created", "Duration", "Later", "Action"
-                            ].map((header) => (
-                                <th key={header} className="px-4 py-3 text-xs font-semibold text-white text-left uppercase tracking-wide">
+                            {["", "Thumbnail", "Title", "Status", "Size", "Created", "Duration", "Later", "Action"].map((header) => (
+                                <th key={header} className={`px-2 md:px-4 py-2 md:py-3 font-semibold text-white text-left uppercase tracking-wide ${["Thumbnail", "Created", "Duration", "Later"].includes(header) ? "hidden md:table-cell" : ""}`}>
                                     {header}
                                 </th>
                             ))}
@@ -389,7 +380,7 @@ function App() {
                             return (
                                 <>
                                 <tr key={item.id} className="hover:bg-blue-50 transition-colors">
-                                    <td className="px-4 py-3 text-center">
+                                    <td className="px-2 md:px-4 py-2 md:py-3 text-center">
                                         <button
                                             onClick={() => setExpandedId(isExpanded ? null : item.id)}
                                             className="text-blue-600 hover:text-blue-800 font-bold cursor-pointer transition-colors"
@@ -399,27 +390,27 @@ function App() {
                                             {isExpanded ? "▼" : "▶"}
                                         </button>
                                     </td>
-                                    <td className="px-4 py-3">
+                                    <td className="px-2 md:px-4 py-2 md:py-3 hidden md:table-cell">
                                         <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline transition-colors">
-                                            {item.thumbnail ? <img src={item.thumbnail} alt="Thumbnail" className="w-20 h-auto rounded" /> : "N/A"}
+                                            {item.thumbnail ? <img src={item.thumbnail} alt="Thumbnail" className="w-16 h-auto rounded" /> : "N/A"}
                                         </a>
                                     </td>
-                                    <td className="px-4 py-3 max-w-xs truncate text-sm text-gray-900 font-medium">{item.title ?? item.url}</td>
-                                    <td className="px-4 py-3">
+                                    <td className="px-2 md:px-4 py-2 md:py-3 max-w-xs truncate text-gray-900 font-medium">{item.title ?? item.url}</td>
+                                    <td className="px-2 md:px-4 py-2 md:py-3">
                                         {item.status === DownloadStatus.Downloading ? (
-                                            <div className="flex flex-col space-y-1 text-xs">
-                                                <div className="flex items-center space-x-2">
+                                            <div className="flex flex-col space-y-1">
+                                                <div className="flex items-center space-x-1 md:space-x-2">
                                                     <Line 
                                                         percent={item.progress} 
                                                         strokeWidth={2} 
                                                         strokeColor="#4CAF50"
                                                         trailColor="#D9D9D9"
-                                                        style={{ width: "80px" }}
+                                                        style={{ width: "60px" }}
                                                     />
-                                                    <span className="font-semibold">{item.progress}%</span>
+                                                    <span className="font-semibold text-xs">{item.progress}%</span>
                                                 </div>
-                                                <div className="text-gray-700">Speed: {item.speed ?? "-"}</div>
-                                                <div className="text-gray-700">ETA: {item.eta ?? "-"}</div>
+                                                <div className="text-gray-700 text-xs hidden md:block">Speed: {item.speed ?? "-"}</div>
+                                                <div className="text-gray-700 text-xs hidden md:block">ETA: {item.eta ?? "-"}</div>
                                             </div>
                                         ) : (
                                             <span className={`font-semibold ${statusDisplay.className}`}>
@@ -427,14 +418,14 @@ function App() {
                                             </span>
                                         )}
                                     </td>
-                                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{formatFileSize(item.totalSize)}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-700">{formatDate(item.created, "dd-MM HH:mm")}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-700">{calculateDuration(item.started, item.finished)}</td>
-                                    <td className="px-4 py-3 text-center">{item.later ? <span className="inline-block bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-semibold">Later</span> : ""}</td>
-                                    <td className="px-4 py-3">
+                                    <td className="px-2 md:px-4 py-2 md:py-3 font-medium text-gray-900">{formatFileSize(item.totalSize)}</td>
+                                    <td className="px-2 md:px-4 py-2 md:py-3 text-gray-700 hidden md:table-cell">{formatDate(item.created, "dd-MM HH:mm")}</td>
+                                    <td className="px-2 md:px-4 py-2 md:py-3 text-gray-700 hidden md:table-cell">{calculateDuration(item.started, item.finished)}</td>
+                                    <td className="px-2 md:px-4 py-2 md:py-3 text-center hidden md:table-cell">{item.later ? <span className="inline-block bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-semibold">Later</span> : ""}</td>
+                                    <td className="px-2 md:px-4 py-2 md:py-3">
                                         <button
                                             onClick={() => handleDelete(item.id)}
-                                            className="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-2 text-sm rounded"
+                                            className="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-2 text-xs rounded"
                                         >
                                             Delete
                                         </button>
@@ -442,7 +433,7 @@ function App() {
                                 </tr>
                                 {isExpanded && item.errorMessage && (
                                     <tr className="bg-red-50 hover:bg-red-100">
-                                        <td colSpan={9} className="px-4 py-4">
+                                        <td colSpan={9} className="px-2 md:px-4 py-3 md:py-4">
                                             <div className="bg-red-50 border-l-4 border-red-600 p-4 rounded text-red-800">
                                                 <div className="font-semibold mb-2 text-red-900">Error Details:</div>
                                                 <div className="whitespace-pre-wrap text-sm font-mono bg-red-100 p-3 rounded border border-red-300 overflow-auto max-h-48 text-red-800">

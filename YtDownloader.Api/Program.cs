@@ -2,6 +2,7 @@
 using YtDownloader.Database;
 using YtDownloader.Core;
 using YtDownloader.Api.Hubs;
+using YtDownloader.Api.Services;
 using FluentMigrator.Runner;
 using FastEndpoints;
 
@@ -24,6 +25,8 @@ builder.Services.AddYtDownloaderDatabase();
 
 builder.Services.AddFastEndpoints();
 builder.Services.AddSignalR();
+builder.Services.AddSingleton<ISignalRBroadcaster, SignalRBroadcaster>();
+builder.Services.AddHostedService<SignalRUpdateService>();
 
 var app = builder.Build();
 

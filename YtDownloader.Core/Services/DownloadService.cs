@@ -110,7 +110,38 @@ internal class DownloadService(IDownloadRepository repository, IYtDlService ytDl
             var newProgress = Convert.ToInt32(progress.Progress * 100);
             if (newProgress > item.Progress)
             {
-                var columnsToUpdate = item.UpdateProgress(newProgress, progress.DownloadSpeed, progress.ETA);
+                // Calculate speed and ETA from available progress data
+                string speed = "0 B/s";
+                string eta = "--:--:--";
+
+                if (item.TotalSize.HasValue && item.TotalSize > 0 && item.Started.HasValue)
+                {
+                    var elapsedSeconds = (DateTime.UtcNow - item.Started.Value).TotalSeconds;
+                    if (elapsedSeconds > 0)
+                    {
+                        // Calculate bytes downloaded based on progress percentage
+                        long bytesDownloaded = (long)(item.TotalSize.Value * (newProgress / 100.0));
+                        double downloadSpeedBytesPerSec = bytesDownloaded / elapsedSeconds;
+                        
+                        // Format speed
+                        speed = FormatBytes(downloadSpeedBytesPerSec) + "/s";
+                        
+                        // Calculate ETA
+                        if (downloadSpeedBytesPerSec > 0 && newProgress < 100)
+                        {
+                            long remainingBytes = item.TotalSize.Value - bytesDownloaded;
+                            double remainingSeconds = remainingBytes / downloadSpeedBytesPerSec;
+                            
+                            int hours = (int)(remainingSeconds / 3600);
+                            int minutes = (int)((remainingSeconds % 3600) / 60);
+                            int seconds = (int)(remainingSeconds % 60);
+                            
+                            eta = $"{hours:D2}:{minutes:D2}:{seconds:D2}";
+                        }
+                    }
+                }
+
+                var columnsToUpdate = item.UpdateProgress(newProgress, speed, eta);
                 repository.Update(item, columnsToUpdate).GetAwaiter().GetResult();
             }
         }
@@ -119,6 +150,19 @@ internal class DownloadService(IDownloadRepository repository, IYtDlService ytDl
             // Progress updates are non-critical, log but don't fail the download
             Console.WriteLine($"Error updating progress for download {item.Id}: {ex.Message}");
         }
+    }
+
+    private static string FormatBytes(double bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.00} {sizes[order]}";
     }
 
     public Task Fail(Download download)
