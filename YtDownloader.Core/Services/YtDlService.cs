@@ -5,7 +5,8 @@ namespace YtDownloader.Core.Services;
 
 public class YtDlService(YtDlVideoOptionSet optionSet, YtDlVideoOptionSetMergeFlexible mergeFlexibleOptionSet, 
     YtDlVideoOptionSetNoThumbnail noThumbnailOptionSet, YtDlVideoOptionSetAutoMerge autoMergeOptionSet, 
-    YtDlVideoOptionSetBestPreMerged bestPreMergedOptionSet, YtDlVideoOptionSetRawDownload rawDownloadOptionSet, YtDlMp3OptionSet mp3OptionSet) : IYtDlService
+    YtDlVideoOptionSetBestPreMerged bestPreMergedOptionSet, YtDlVideoOptionSetRawDownload rawDownloadOptionSet,
+    YtDlVideoOptionSetVideoOnly videoOnlyOptionSet, YtDlMp3OptionSet mp3OptionSet) : IYtDlService
 {
     private const string outputFolder = "/tmp";
     private static readonly string youtubeDLPath = OperatingSystem.IsLinux() ? "yt-dlp" : @"C:\Users\Chais Star\.stacher\yt-dlp.exe";
@@ -28,32 +29,52 @@ public class YtDlService(YtDlVideoOptionSet optionSet, YtDlVideoOptionSetMergeFl
         OutputFileTemplate = "%(title)s.%(ext)s",
         OverwriteFiles = true
     };
+    
+    private readonly OptionSet[] videoFallbacks = new[]
+    {
+        optionSet.Value,
+        mergeFlexibleOptionSet.Value,
+        noThumbnailOptionSet.Value,
+        autoMergeOptionSet.Value,
+        bestPreMergedOptionSet.Value,
+        rawDownloadOptionSet.Value,
+        videoOnlyOptionSet.Value
+    };
+    
+    private readonly string[] fallbackNames = new[]
+    {
+        "primary",
+        "flexible merge",
+        "without thumbnail",
+        "auto-merge",
+        "best pre-merged",
+        "raw download",
+        "video-only"
+    };
 
     public async Task<RunResult<string>> RunVideoDownload(string url, bool later = false, Action<DownloadProgress>? downloadProgressHandler = null)
     {
-        var optionSets = new[]
-        {
-            (optionSet.Value, "primary"),
-            (mergeFlexibleOptionSet.Value, "flexible merge"),
-            (noThumbnailOptionSet.Value, "without thumbnail"),
-            (autoMergeOptionSet.Value, "auto-merge"),
-            (bestPreMergedOptionSet.Value, "best pre-merged"),
-            (rawDownloadOptionSet.Value, "raw download")
-        };
+        RunResult<string>? lastResult = null;
         
-        foreach (var (options, name) in optionSets)
+        for (int i = 0; i < videoFallbacks.Length; i++)
         {
-            var result = await youtubeDL.RunVideoDownload(url, overrideOptions: options, 
+            var result = await youtubeDL.RunVideoDownload(url, overrideOptions: videoFallbacks[i], 
                 progress: downloadProgressHandler is null ? null : new Progress<DownloadProgress>(downloadProgressHandler));
             
+            lastResult = result;
             if (result.Success)
                 return result;
                 
-            Console.WriteLine($"Trying {name} format...");
+            Console.WriteLine($"Trying {fallbackNames[i]} format...");
         }
         
-        // Return last failed result
-        return new RunResult<string>(false, [], "");
+        // Log final error if all attempts failed
+        if (lastResult != null && !lastResult.Success)
+        {
+            Console.WriteLine($"All download formats failed. Final error: {string.Join("; ", lastResult.ErrorOutput ?? [])}");
+        }
+        
+        return lastResult ?? new RunResult<string>(false, [], "");
     }
 
     public Task<RunResult<VideoData>> GetVideoData(string url) => youtubeDL.RunVideoDataFetch(url, overrideOptions: optionSet.Value);

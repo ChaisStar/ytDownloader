@@ -82,6 +82,19 @@ public class YtDlVideoOptionSetRawDownload : Lazy<OptionSet>
     { }
 }
 
+// Fallback 6: Download video as MP4 without audio (last resort)
+public class YtDlVideoOptionSetVideoOnly : Lazy<OptionSet>
+{
+    public YtDlVideoOptionSetVideoOnly() : base(new OptionSet
+    {
+        // Download video only, no audio merge
+        Format = "bestvideo[ext=mp4]/best",
+        EmbedThumbnail = false,
+        Cookies = "/tmp/cookies/cookies.txt",
+    })
+    { }
+}
+
 public class YtDlMp3OptionSet : Lazy<OptionSet>
 {
     public YtDlMp3OptionSet() : base(new OptionSet
