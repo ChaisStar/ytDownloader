@@ -1,5 +1,6 @@
 ﻿using YoutubeDLSharp;
 using YoutubeDLSharp.Metadata;
+using YoutubeDLSharp.Options;
 
 namespace YtDownloader.Core.Services;
 
