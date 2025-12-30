@@ -2,7 +2,7 @@
 
 namespace YtDownloader.Core.Services
 {
-    internal interface IDownloadService
+    public interface IDownloadService
     {
         Task Fail(Download download);
         Task<IReadOnlyList<Download>> GetPendingDownloads();
