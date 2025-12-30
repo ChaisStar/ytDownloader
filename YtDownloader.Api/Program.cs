@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.FileProviders;
 using YtDownloader.Database;
 using YtDownloader.Core;
+using YtDownloader.Api.Hubs;
 using FluentMigrator.Runner;
 using FastEndpoints;
 
@@ -22,6 +23,7 @@ builder.Services.AddYtDownloaderServices();
 builder.Services.AddYtDownloaderDatabase();
 
 builder.Services.AddFastEndpoints();
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -29,7 +31,6 @@ using var serviceScope = app.Services.GetRequiredService<IServiceScopeFactory>()
 var runner = serviceScope.ServiceProvider.GetRequiredService<IMigrationRunner>();
 runner.MigrateUp();
 app.UseCors("AllowAll");
-//app.UseHttpsRedirection();
 
 var staticFilesPath = Path.Combine(builder.Environment.ContentRootPath, "static");
 
@@ -51,6 +52,9 @@ app.Use(async (context, next) =>
 
 app.UseFastEndpoints();
 
+// Map SignalR hub
+app.MapHub<DownloadsHub>("/hub/downloads");
+
 // Fallback for SPA
 app.Use(async (context, next) =>
 {
@@ -62,4 +66,4 @@ app.Use(async (context, next) =>
     }
 });
 
-app.Run();
+await app.RunAsync();

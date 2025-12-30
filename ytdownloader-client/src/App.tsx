@@ -4,6 +4,8 @@ import { format, differenceInSeconds } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { Line } from "rc-progress";
 import { DownloadStatus } from "./DownloadStatus";
+import * as signalR from "@microsoft/signalr";
+
 const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 function formatDate(date: undefined | string | Date, f: string) {
@@ -79,46 +81,60 @@ function App() {
     const [isUpdating, setIsUpdating] = useState(false);
     const [activeTab, setActiveTab] = useState<"current" | "archive">("current");
 
+    // SignalR connection effect
     useEffect(() => {
-        const fetchData = async () => {
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl(`${URL}/hub/downloads`)
+            .withAutomaticReconnect()
+            .build();
+
+        connection.start()
+            .then(() => console.log("Connected to SignalR"))
+            .catch(err => console.error("SignalR connection failed:", err));
+
+        // Listen for downloads updates
+        connection.on("ReceiveDownloadsUpdate", (data: DownloadItem[]) => {
+            setDownloads(processDownloadData(data));
+        });
+
+        // Listen for version updates
+        connection.on("ReceiveVersionUpdate", (version: string) => {
+            setYtDlpVersion(version);
+        });
+
+        // Listen for cookies updates
+        connection.on("ReceiveCookiesUpdate", (info: { lastModified?: string; size: number; exists: boolean }) => {
+            setCookiesInfo(info);
+        });
+
+        // Fetch initial data on connect
+        const fetchInitialData = async () => {
             try {
                 const currentResponse = await fetch(`${URL}/downloads`);
                 const currentData: DownloadItem[] = await currentResponse.json();
                 setDownloads(processDownloadData(currentData));
-            } catch (error) {
-                console.error("Error fetching download status:", error);
-            }
-        };
 
-        fetchData();
-        const interval = setInterval(fetchData, 1000);
-        return () => clearInterval(interval);
-    }, []);
-
-    useEffect(() => {
-        const fetchVersionAndCookies = async () => {
-            try {
-                // Fetch yt-dlp version
                 const versionResponse = await fetch(`${URL}/ytdlp/version`);
                 if (versionResponse.ok) {
                     const version = await versionResponse.text();
                     setYtDlpVersion(version);
                 }
 
-                // Fetch cookies info
                 const cookiesResponse = await fetch(`${URL}/cookies/info`);
                 if (cookiesResponse.ok) {
                     const info = await cookiesResponse.json();
                     setCookiesInfo(info);
                 }
             } catch (error) {
-                console.error("Error fetching version and cookies info:", error);
+                console.error("Error fetching initial data:", error);
             }
         };
 
-        fetchVersionAndCookies();
-        const interval = setInterval(fetchVersionAndCookies, 10000); // Refresh every 10 seconds
-        return () => clearInterval(interval);
+        fetchInitialData();
+
+        return () => {
+            connection.stop();
+        };
     }, []);
 
     useEffect(() => {
@@ -318,7 +334,7 @@ function App() {
                             {cookiesInfo.exists ? (
                                 <p className="text-sm text-gray-700">
                                     {cookiesInfo.size > 0 && <span>{(cookiesInfo.size / 1024).toFixed(2)} KB • </span>}
-                                    {cookiesInfo.lastModified && <span>{new Date(cookiesInfo.lastModified).toLocaleDateString()}</span>}
+                                    {cookiesInfo.lastModified && <span>{new Date(cookiesInfo.lastModified).toLocaleString()}</span>}
                                 </p>
                             ) : (
                                 <p className="text-sm text-gray-700">Not configured</p>
