@@ -77,7 +77,6 @@ public class YtDlVideoOptionSetRawDownload : Lazy<OptionSet>
     {
         // No format, no merging, no post-processing - just download the best available single file
         EmbedThumbnail = false,
-        KeepVideoFiles = true, // Keep downloaded files even if merge fails
         Cookies = "/tmp/cookies/cookies.txt",
     })
     { }

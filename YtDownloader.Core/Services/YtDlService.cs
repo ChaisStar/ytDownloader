@@ -40,21 +40,20 @@ public class YtDlService(YtDlVideoOptionSet optionSet, YtDlVideoOptionSetMergeFl
             (bestPreMergedOptionSet.Value, "best pre-merged"),
             (rawDownloadOptionSet.Value, "raw download")
         };
-
-        RunResult<string> result = new() { Success = false };
         
         foreach (var (options, name) in optionSets)
         {
-            result = await youtubeDL.RunVideoDownload(url, overrideOptions: options, 
+            var result = await youtubeDL.RunVideoDownload(url, overrideOptions: options, 
                 progress: downloadProgressHandler is null ? null : new Progress<DownloadProgress>(downloadProgressHandler));
             
             if (result.Success)
-                break;
+                return result;
                 
             Console.WriteLine($"Trying {name} format...");
         }
         
-        return result;
+        // Return last failed result
+        return new RunResult<string>(false, [], "");
     }
 
     public Task<RunResult<VideoData>> GetVideoData(string url) => youtubeDL.RunVideoDataFetch(url, overrideOptions: optionSet.Value);
