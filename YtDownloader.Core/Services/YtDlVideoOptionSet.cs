@@ -2,15 +2,42 @@
 
 namespace YtDownloader.Core.Services;
 
+// Primary format: Download best available single file
 public class YtDlVideoOptionSet : Lazy<OptionSet>
 {
     public YtDlVideoOptionSet() : base(new OptionSet
     {
         MergeOutputFormat = DownloadMergeFormat.Mp4,
-        // Simpler format to avoid FFmpeg issues
-        // Get best video up to 1080p + best audio, with fallbacks for compatibility
-        Format = "best[height<=1080]/bestvideo[height<=1080]+bestaudio/best",
+        Format = "bestvideo[height<=1080][height>=720][fps<=30]+bestaudio[ext=m4a][abr<=128]/bestvideo[height<=1080][fps<=30]+bestaudio[ext=m4a]/best[height<=1080]",
         EmbedThumbnail = true,
+        Cookies = "/tmp/cookies/cookies.txt",
+    })
+    { }
+}
+
+// Fallback 1: Merge best video + best audio without constraints
+public class YtDlVideoOptionSetMergeFlexible : Lazy<OptionSet>
+{
+    public YtDlVideoOptionSetMergeFlexible() : base(new OptionSet
+    {
+        MergeOutputFormat = DownloadMergeFormat.Mp4,
+        // Try merging best video + best audio without constraints
+        Format = "bestvideo+bestaudio/best",
+        EmbedThumbnail = true,
+        Cookies = "/tmp/cookies/cookies.txt",
+    })
+    { }
+}
+
+// Fallback 2: Download without thumbnail to reduce processing
+public class YtDlVideoOptionSetNoThumbnail : Lazy<OptionSet>
+{
+    public YtDlVideoOptionSetNoThumbnail() : base(new OptionSet
+    {
+        MergeOutputFormat = DownloadMergeFormat.Mp4,
+        // Download without embedding thumbnail to reduce FFmpeg processing
+        Format = "best",
+        EmbedThumbnail = false,
         Cookies = "/tmp/cookies/cookies.txt",
     })
     { }
