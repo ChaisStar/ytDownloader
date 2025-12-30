@@ -11,6 +11,7 @@ public static class IServiceCollectionExtensions
         services.AddSingleton<YtDlVideoOptionSet>();
         services.AddSingleton<YtDlVideoOptionSetMergeFlexible>();
         services.AddSingleton<YtDlVideoOptionSetNoThumbnail>();
+        services.AddSingleton<YtDlVideoOptionSetAutoMerge>();
         services.AddSingleton<YtDlMp3OptionSet>();
         services.AddSingleton<IYtDlService, YtDlService>();
         services.AddScoped<IDownloadService, DownloadService>();

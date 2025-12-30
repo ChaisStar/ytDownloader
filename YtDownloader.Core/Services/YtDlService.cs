@@ -4,7 +4,7 @@ using YoutubeDLSharp.Metadata;
 namespace YtDownloader.Core.Services;
 
 public class YtDlService(YtDlVideoOptionSet optionSet, YtDlVideoOptionSetMergeFlexible mergeFlexibleOptionSet, 
-    YtDlVideoOptionSetNoThumbnail noThumbnailOptionSet, YtDlMp3OptionSet mp3OptionSet) : IYtDlService
+    YtDlVideoOptionSetNoThumbnail noThumbnailOptionSet, YtDlVideoOptionSetAutoMerge autoMergeOptionSet, YtDlMp3OptionSet mp3OptionSet) : IYtDlService
 {
     private const string outputFolder = "/tmp";
     private static readonly string youtubeDLPath = OperatingSystem.IsLinux() ? "yt-dlp" : @"C:\Users\Chais Star\.stacher\yt-dlp.exe";
@@ -34,19 +34,30 @@ public class YtDlService(YtDlVideoOptionSet optionSet, YtDlVideoOptionSetMergeFl
         var result = await youtubeDL.RunVideoDownload(url, overrideOptions: optionSet.Value, 
             progress: downloadProgressHandler is null ? null : new Progress<DownloadProgress>(downloadProgressHandler));
         
-        // If FFmpeg failed, try merge flexible format
-        if (!result.Success && result.ErrorOutput?.Any(e => e.Contains("ffmpeg") || e.Contains("code -11")) == true)
+        // If primary format failed, try merge flexible format
+        if (!result.Success)
         {
-            Console.WriteLine("Primary format failed with FFmpeg error, trying flexible merge format...");
+            Console.WriteLine($"Primary format failed, error output: {string.Join("; ", result.ErrorOutput ?? [])}");
+            Console.WriteLine("Trying flexible merge format...");
             result = await youtubeDL.RunVideoDownload(url, overrideOptions: mergeFlexibleOptionSet.Value, 
                 progress: downloadProgressHandler is null ? null : new Progress<DownloadProgress>(downloadProgressHandler));
         }
         
         // If still failing, try without thumbnail
-        if (!result.Success && result.ErrorOutput?.Any(e => e.Contains("ffmpeg") || e.Contains("code -11")) == true)
+        if (!result.Success)
         {
-            Console.WriteLine("Flexible merge format failed with FFmpeg error, trying without thumbnail...");
+            Console.WriteLine($"Flexible merge format failed, error output: {string.Join("; ", result.ErrorOutput ?? [])}");
+            Console.WriteLine("Trying without thumbnail...");
             result = await youtubeDL.RunVideoDownload(url, overrideOptions: noThumbnailOptionSet.Value, 
+                progress: downloadProgressHandler is null ? null : new Progress<DownloadProgress>(downloadProgressHandler));
+        }
+        
+        // If still failing, try auto-merge (no format restriction)
+        if (!result.Success)
+        {
+            Console.WriteLine($"No-thumbnail format failed, error output: {string.Join("; ", result.ErrorOutput ?? [])}");
+            Console.WriteLine("Trying auto-merge format with no restrictions...");
+            result = await youtubeDL.RunVideoDownload(url, overrideOptions: autoMergeOptionSet.Value, 
                 progress: downloadProgressHandler is null ? null : new Progress<DownloadProgress>(downloadProgressHandler));
         }
         

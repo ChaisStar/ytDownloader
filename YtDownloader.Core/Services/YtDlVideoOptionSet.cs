@@ -36,7 +36,20 @@ public class YtDlVideoOptionSetNoThumbnail : Lazy<OptionSet>
     {
         MergeOutputFormat = DownloadMergeFormat.Mp4,
         // Download without embedding thumbnail to reduce FFmpeg processing
-        Format = "best",
+        Format = "bestvideo+bestaudio/best",
+        EmbedThumbnail = false,
+        Cookies = "/tmp/cookies/cookies.txt",
+    })
+    { }
+}
+
+// Fallback 3: Let yt-dlp auto-merge without any format constraints
+public class YtDlVideoOptionSetAutoMerge : Lazy<OptionSet>
+{
+    public YtDlVideoOptionSetAutoMerge() : base(new OptionSet
+    {
+        MergeOutputFormat = DownloadMergeFormat.Mp4,
+        // No format restriction - let yt-dlp choose the best available format
         EmbedThumbnail = false,
         Cookies = "/tmp/cookies/cookies.txt",
     })
