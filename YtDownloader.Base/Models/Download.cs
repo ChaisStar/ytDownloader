@@ -18,6 +18,7 @@ public class Download
     public DateTime? Finished { get; private set; }
     public bool Later { get; }
     public string? ErrorMessage { get; private set; }
+    public int Retries { get; private set; }
 
     public Download(int id, string url, bool later = false)
     {
@@ -28,6 +29,7 @@ public class Download
         Progress = 0;
         Created = DateTime.UtcNow;
         ErrorMessage = null;
+        Retries = 0;
     }
 
     // Factory method to reconstruct Download from database record. Multiple parameters are necessary to restore full state.
@@ -35,7 +37,7 @@ public class Download
     public static Download CreateFromDatabase(int id, string url, string? thumbnail, string? title,
         DownloadStatus status, int progress, long? totalSize, string? speed,
         string? eTA, DateTime created, DateTime? started, DateTime? finished,
-        bool later, string? errorMessage)
+        bool later, string? errorMessage, int retries = 0)
 #pragma warning restore S107
     {
         #pragma warning disable CS8601
@@ -52,7 +54,8 @@ public class Download
             Created = created,
             Started = started,
             Finished = finished,
-            ErrorMessage = errorMessage
+            ErrorMessage = errorMessage,
+            Retries = retries
         };
     }
 
@@ -103,5 +106,11 @@ public class Download
         Speed = speed;
         ETA = eTA;
         return [nameof(Progress), nameof(Speed), nameof(ETA), nameof(Status)];
+    }
+
+    public string[] IncrementRetries()
+    {
+        Retries++;
+        return [nameof(Retries)];
     }
 }
