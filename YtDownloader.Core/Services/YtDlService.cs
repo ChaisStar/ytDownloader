@@ -4,7 +4,8 @@ using YoutubeDLSharp.Metadata;
 namespace YtDownloader.Core.Services;
 
 public class YtDlService(YtDlVideoOptionSet optionSet, YtDlVideoOptionSetMergeFlexible mergeFlexibleOptionSet, 
-    YtDlVideoOptionSetNoThumbnail noThumbnailOptionSet, YtDlVideoOptionSetAutoMerge autoMergeOptionSet, YtDlMp3OptionSet mp3OptionSet) : IYtDlService
+    YtDlVideoOptionSetNoThumbnail noThumbnailOptionSet, YtDlVideoOptionSetAutoMerge autoMergeOptionSet, 
+    YtDlVideoOptionSetBestPreMerged bestPreMergedOptionSet, YtDlMp3OptionSet mp3OptionSet) : IYtDlService
 {
     private const string outputFolder = "/tmp";
     private static readonly string youtubeDLPath = OperatingSystem.IsLinux() ? "yt-dlp" : @"C:\Users\Chais Star\.stacher\yt-dlp.exe";
@@ -58,6 +59,15 @@ public class YtDlService(YtDlVideoOptionSet optionSet, YtDlVideoOptionSetMergeFl
             Console.WriteLine($"No-thumbnail format failed, error output: {string.Join("; ", result.ErrorOutput ?? [])}");
             Console.WriteLine("Trying auto-merge format with no restrictions...");
             result = await youtubeDL.RunVideoDownload(url, overrideOptions: autoMergeOptionSet.Value, 
+                progress: downloadProgressHandler is null ? null : new Progress<DownloadProgress>(downloadProgressHandler));
+        }
+        
+        // If still failing, try best pre-merged format (no merging)
+        if (!result.Success)
+        {
+            Console.WriteLine($"Auto-merge format failed, error output: {string.Join("; ", result.ErrorOutput ?? [])}");
+            Console.WriteLine("Trying best pre-merged format (no merging)...");
+            result = await youtubeDL.RunVideoDownload(url, overrideOptions: bestPreMergedOptionSet.Value, 
                 progress: downloadProgressHandler is null ? null : new Progress<DownloadProgress>(downloadProgressHandler));
         }
         

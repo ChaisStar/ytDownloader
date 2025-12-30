@@ -56,6 +56,20 @@ public class YtDlVideoOptionSetAutoMerge : Lazy<OptionSet>
     { }
 }
 
+// Fallback 4: Best pre-merged format (no merging needed)
+public class YtDlVideoOptionSetBestPreMerged : Lazy<OptionSet>
+{
+    public YtDlVideoOptionSetBestPreMerged() : base(new OptionSet
+    {
+        MergeOutputFormat = DownloadMergeFormat.Mp4,
+        // Use "-f b" to get best pre-merged format without attempting to merge
+        Format = "b",
+        EmbedThumbnail = false,
+        Cookies = "/tmp/cookies/cookies.txt",
+    })
+    { }
+}
+
 public class YtDlMp3OptionSet : Lazy<OptionSet>
 {
     public YtDlMp3OptionSet() : base(new OptionSet
