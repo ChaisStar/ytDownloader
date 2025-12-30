@@ -5,7 +5,7 @@ namespace YtDownloader.Core.Services;
 
 public class YtDlService(YtDlVideoOptionSet optionSet, YtDlVideoOptionSetMergeFlexible mergeFlexibleOptionSet, 
     YtDlVideoOptionSetNoThumbnail noThumbnailOptionSet, YtDlVideoOptionSetAutoMerge autoMergeOptionSet, 
-    YtDlVideoOptionSetBestPreMerged bestPreMergedOptionSet, YtDlMp3OptionSet mp3OptionSet) : IYtDlService
+    YtDlVideoOptionSetBestPreMerged bestPreMergedOptionSet, YtDlVideoOptionSetRawDownload rawDownloadOptionSet, YtDlMp3OptionSet mp3OptionSet) : IYtDlService
 {
     private const string outputFolder = "/tmp";
     private static readonly string youtubeDLPath = OperatingSystem.IsLinux() ? "yt-dlp" : @"C:\Users\Chais Star\.stacher\yt-dlp.exe";
@@ -31,44 +31,27 @@ public class YtDlService(YtDlVideoOptionSet optionSet, YtDlVideoOptionSetMergeFl
 
     public async Task<RunResult<string>> RunVideoDownload(string url, bool later = false, Action<DownloadProgress>? downloadProgressHandler = null)
     {
-        // Try primary format
-        var result = await youtubeDL.RunVideoDownload(url, overrideOptions: optionSet.Value, 
-            progress: downloadProgressHandler is null ? null : new Progress<DownloadProgress>(downloadProgressHandler));
-        
-        // If primary format failed, try merge flexible format
-        if (!result.Success)
+        var optionSets = new[]
         {
-            Console.WriteLine($"Primary format failed, error output: {string.Join("; ", result.ErrorOutput ?? [])}");
-            Console.WriteLine("Trying flexible merge format...");
-            result = await youtubeDL.RunVideoDownload(url, overrideOptions: mergeFlexibleOptionSet.Value, 
-                progress: downloadProgressHandler is null ? null : new Progress<DownloadProgress>(downloadProgressHandler));
-        }
+            (optionSet.Value, "primary"),
+            (mergeFlexibleOptionSet.Value, "flexible merge"),
+            (noThumbnailOptionSet.Value, "without thumbnail"),
+            (autoMergeOptionSet.Value, "auto-merge"),
+            (bestPreMergedOptionSet.Value, "best pre-merged"),
+            (rawDownloadOptionSet.Value, "raw download")
+        };
+
+        RunResult<string> result = new() { Success = false };
         
-        // If still failing, try without thumbnail
-        if (!result.Success)
+        foreach (var (options, name) in optionSets)
         {
-            Console.WriteLine($"Flexible merge format failed, error output: {string.Join("; ", result.ErrorOutput ?? [])}");
-            Console.WriteLine("Trying without thumbnail...");
-            result = await youtubeDL.RunVideoDownload(url, overrideOptions: noThumbnailOptionSet.Value, 
+            result = await youtubeDL.RunVideoDownload(url, overrideOptions: options, 
                 progress: downloadProgressHandler is null ? null : new Progress<DownloadProgress>(downloadProgressHandler));
-        }
-        
-        // If still failing, try auto-merge (no format restriction)
-        if (!result.Success)
-        {
-            Console.WriteLine($"No-thumbnail format failed, error output: {string.Join("; ", result.ErrorOutput ?? [])}");
-            Console.WriteLine("Trying auto-merge format with no restrictions...");
-            result = await youtubeDL.RunVideoDownload(url, overrideOptions: autoMergeOptionSet.Value, 
-                progress: downloadProgressHandler is null ? null : new Progress<DownloadProgress>(downloadProgressHandler));
-        }
-        
-        // If still failing, try best pre-merged format (no merging)
-        if (!result.Success)
-        {
-            Console.WriteLine($"Auto-merge format failed, error output: {string.Join("; ", result.ErrorOutput ?? [])}");
-            Console.WriteLine("Trying best pre-merged format (no merging)...");
-            result = await youtubeDL.RunVideoDownload(url, overrideOptions: bestPreMergedOptionSet.Value, 
-                progress: downloadProgressHandler is null ? null : new Progress<DownloadProgress>(downloadProgressHandler));
+            
+            if (result.Success)
+                break;
+                
+            Console.WriteLine($"Trying {name} format...");
         }
         
         return result;

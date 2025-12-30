@@ -70,6 +70,19 @@ public class YtDlVideoOptionSetBestPreMerged : Lazy<OptionSet>
     { }
 }
 
+// Fallback 5: Download raw without any post-processing
+public class YtDlVideoOptionSetRawDownload : Lazy<OptionSet>
+{
+    public YtDlVideoOptionSetRawDownload() : base(new OptionSet
+    {
+        // No format, no merging, no post-processing - just download the best available single file
+        EmbedThumbnail = false,
+        KeepVideoFiles = true, // Keep downloaded files even if merge fails
+        Cookies = "/tmp/cookies/cookies.txt",
+    })
+    { }
+}
+
 public class YtDlMp3OptionSet : Lazy<OptionSet>
 {
     public YtDlMp3OptionSet() : base(new OptionSet
