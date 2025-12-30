@@ -91,8 +91,8 @@ public class YtDlService(YtDlVideoOptionSet optionSet, YtDlVideoOptionSetMergeFl
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = "/bin/sh",
-                    Arguments = "-c \"yt-dlp --version\"",
+                    FileName = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh",
+                    Arguments = OperatingSystem.IsWindows() ? "/c yt-dlp --version" : "-c \"yt-dlp --version\"",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,

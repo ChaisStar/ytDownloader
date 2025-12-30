@@ -20,8 +20,8 @@ public class YtDlpUpdateEndpoint : EndpointWithoutRequest<UpdateResponse>
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = "/bin/sh",
-                    Arguments = "-c \"pipx install --upgrade yt-dlp\"",
+                    FileName = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh",
+                    Arguments = OperatingSystem.IsWindows() ? "/c pipx upgrade yt-dlp" : "-c \"pipx upgrade yt-dlp\"",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,

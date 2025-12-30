@@ -43,10 +43,16 @@ ENV PATH="/root/.local/bin:$PATH"
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
+COPY ["*.sln", "./"]
 COPY ["./YtDownloader.Api/YtDownloader.Api.csproj", "./YtDownloader.Api/"]
-RUN dotnet restore "./YtDownloader.Api/YtDownloader.Api.csproj"
+COPY ["./YtDownloader.Base/YtDownloader.Base.csproj", "./YtDownloader.Base/"]
+COPY ["./YtDownloader.Core/YtDownloader.Core.csproj", "./YtDownloader.Core/"]
+COPY ["./YtDownloader.Database/YtDownloader.Database.csproj", "./YtDownloader.Database/"]
+COPY ["./docker-compose.dcproj", "./"]
+COPY ["./ytdownloader-client/ytdownloader-client.esproj", "./ytdownloader-client/"]
+RUN dotnet restore "./YtDownloader.sln"
 COPY . .
-WORKDIR "./src/YtDownloader.Api"
+WORKDIR "/src/YtDownloader.Api"
 RUN dotnet build "./YtDownloader.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage
@@ -59,5 +65,5 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
-# Запуск cron у фоновому режимі та .NET додатку
-ENTRYPOINT ["sh", "-c", "cron && dotnet YtDownloader.Api.dll"]
+# Запуск .NET додатку
+ENTRYPOINT ["dotnet", "YtDownloader.Api.dll"]
