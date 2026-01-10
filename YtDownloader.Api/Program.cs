@@ -24,7 +24,13 @@ builder.Services.AddYtDownloaderServices();
 builder.Services.AddYtDownloaderDatabase();
 
 builder.Services.AddFastEndpoints();
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(options =>
+{
+    options.HandshakeTimeout = TimeSpan.FromSeconds(15);
+    options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+    options.MaximumReceiveMessageSize = 32 * 1024 * 1024; // 32MB
+});
 builder.Services.AddSingleton<ISignalRBroadcaster, SignalRBroadcaster>();
 builder.Services.AddHostedService<SignalRUpdateService>();
 
@@ -33,10 +39,10 @@ var app = builder.Build();
 using var serviceScope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope();
 var runner = serviceScope.ServiceProvider.GetRequiredService<IMigrationRunner>();
 runner.MigrateUp();
+
 app.UseCors("AllowAll");
 
 var staticFilesPath = Path.Combine(builder.Environment.ContentRootPath, "static");
-
 if (Directory.Exists(staticFilesPath))
 {
     app.UseStaticFiles(new StaticFileOptions
@@ -45,6 +51,7 @@ if (Directory.Exists(staticFilesPath))
         RequestPath = ""
     });
 }
+
 app.Use(async (context, next) =>
 {
     context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
@@ -55,7 +62,7 @@ app.Use(async (context, next) =>
 
 app.UseFastEndpoints();
 
-// Map SignalR hub
+// Map SignalR hub - must be after UseCors but before fallback routing
 app.MapHub<DownloadsHub>("/hub/downloads");
 
 // Fallback for SPA

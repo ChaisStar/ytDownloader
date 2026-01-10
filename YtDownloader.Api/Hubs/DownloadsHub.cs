@@ -8,13 +8,16 @@ public class DownloadsHub : Hub
 {
     public override async Task OnConnectedAsync()
     {
-        Console.WriteLine($"Client connected: {Context.ConnectionId}");
+        Console.WriteLine($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}] Client connected: {Context.ConnectionId} from {Context.GetHttpContext()?.Connection.RemoteIpAddress}");
         await base.OnConnectedAsync();
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        Console.WriteLine($"Client disconnected: {Context.ConnectionId}");
+        var msg = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}] Client disconnected: {Context.ConnectionId}";
+        if (exception != null)
+            msg += $" - Exception: {exception.Message}";
+        Console.WriteLine(msg);
         await base.OnDisconnectedAsync(exception);
     }
 

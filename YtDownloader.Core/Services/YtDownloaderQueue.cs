@@ -50,8 +50,11 @@ public class YtDownloaderQueue(IDownloadService downloadService, ILogger<YtDownl
                 foreach (var download in sortedDownloads)
                 {
                     logger.LogInformation("Processing download {DownloadId}: {Url}", download.Id, download.Url);
-                    await UpdateInfoAsync(download);
-                    await RunAsync(download);
+                    _ = Task.Run(async () =>
+                    {
+                        await UpdateInfoAsync(download);
+                        await RunAsync(download);
+                    });
                 }
 
                 await Task.Delay(CheckTimeout, stoppingToken);
