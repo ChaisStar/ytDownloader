@@ -2,13 +2,13 @@
 using YoutubeDLSharp.Metadata;
 using YoutubeDLSharp.Options;
 using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
+using YtDownloader.Base.Repositories;
+using YtDownloader.Base.Models;
 
 namespace YtDownloader.Core.Services;
 
-public class YtDlService(YtDlMainOptionSet mainOptionSet, YtDlVideoOptionSet optionSet, YtDlVideoOptionSetMergeFlexible mergeFlexibleOptionSet, 
-    YtDlVideoOptionSetNoThumbnail noThumbnailOptionSet, YtDlVideoOptionSetAutoMerge autoMergeOptionSet, 
-    YtDlVideoOptionSetBestPreMerged bestPreMergedOptionSet, YtDlVideoOptionSetRawDownload rawDownloadOptionSet,
-    YtDlVideoOptionSetVideoOnly videoOnlyOptionSet, YtDlMp3OptionSet mp3OptionSet) : IYtDlService
+public class YtDlService(IServiceScopeFactory scopeFactory) : IYtDlService
 {
     private const string outputFolder = "/tmp";
     private static readonly string youtubeDLPath = OperatingSystem.IsLinux() ? "yt-dlp" : @"C:\Users\Chais Star\.stacher\yt-dlp.exe";
@@ -31,45 +31,34 @@ public class YtDlService(YtDlMainOptionSet mainOptionSet, YtDlVideoOptionSet opt
         OutputFileTemplate = "%(title)s.%(ext)s",
         OverwriteFiles = true
     };
-    
-    private readonly OptionSet[] videoFallbacks = new[]
-    {
-        mainOptionSet.Value,
-        optionSet.Value,
-        mergeFlexibleOptionSet.Value,
-        noThumbnailOptionSet.Value,
-        autoMergeOptionSet.Value,
-        bestPreMergedOptionSet.Value,
-        rawDownloadOptionSet.Value,
-        videoOnlyOptionSet.Value
-    };
-    
-    private readonly string[] fallbackNames = new[]
-    {
-        "main",
-        "primary",
-        "flexible merge",
-        "without thumbnail",
-        "auto-merge",
-        "best pre-merged",
-        "raw download",
-        "video-only"
-    };
 
-    public async Task<RunResult<string>> RunVideoDownload(string url, bool later = false, Action<DownloadProgress>? downloadProgressHandler = null)
+    public async Task<RunResult<string>> RunVideoDownload(string url, Action<DownloadProgress>? downloadProgressHandler = null)
     {
+        using var scope = scopeFactory.CreateScope();
+        var repository = scope.ServiceProvider.GetRequiredService<IOptionSetRepository>();
+        var optionSets = await repository.GetEnabled();
+
         RunResult<string>? lastResult = null;
         
-        for (int i = 0; i < videoFallbacks.Length; i++)
+        foreach (var optionSetModel in optionSets.OrderBy(o => o.Priority))
         {
-            var result = await youtubeDL.RunVideoDownload(url, overrideOptions: videoFallbacks[i], 
-                progress: downloadProgressHandler is null ? null : new Progress<DownloadProgress>(downloadProgressHandler));
-            
-            lastResult = result;
-            if (result.Success)
-                return result;
+            try
+            {
+                var options = optionSetModel.ToYtDlOptions();
+                var result = await youtubeDL.RunVideoDownload(url, overrideOptions: options, 
+                    progress: downloadProgressHandler is null ? null : new Progress<DownloadProgress>(downloadProgressHandler));
                 
-            Console.WriteLine($"Trying {fallbackNames[i]} format...");
+                lastResult = result;
+                if (result.Success)
+                    return result;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during {optionSetModel.Name} attempt: {ex.Message}");
+                lastResult = new RunResult<string>(false, [ex.Message], "");
+            }
+                
+            Console.WriteLine($"Trying {optionSetModel.Name} format...");
         }
         
         // Log final error if all attempts failed
@@ -81,9 +70,36 @@ public class YtDlService(YtDlMainOptionSet mainOptionSet, YtDlVideoOptionSet opt
         return lastResult ?? new RunResult<string>(false, [], "");
     }
 
-    public Task<RunResult<VideoData>> GetVideoData(string url) => youtubeDL.RunVideoDataFetch(url, overrideOptions: mainOptionSet.Value);
+    public async Task<RunResult<VideoData>> GetVideoData(string url)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var repository = scope.ServiceProvider.GetRequiredService<IOptionSetRepository>();
+        var optionSets = await repository.GetEnabled();
+        
+        // Use first enabled option set as default for metadata fetching (usually 'main')
+        var defaultOptions = optionSets.FirstOrDefault()?.ToYtDlOptions() ?? new OptionSet { Cookies = "/tmp/cookies/cookies.txt" };
+        
+        return await youtubeDL.RunVideoDataFetch(url, overrideOptions: defaultOptions);
+    }
 
-    public Task<RunResult<string>> RunMp3PlaylistDownload(string url) => mp3Dl.RunVideoDownload(url, overrideOptions: mp3OptionSet.Value);
+    public async Task<RunResult<string>> RunMp3PlaylistDownload(string url)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var repository = scope.ServiceProvider.GetRequiredService<IOptionSetRepository>();
+        var allOptions = await repository.GetAll();
+        
+        // Find mp3 specific options or fallback to a default
+        var mp3Options = allOptions.FirstOrDefault(o => o.Name.Contains("mp3", StringComparison.OrdinalIgnoreCase) && o.IsEnabled);
+
+        var options = mp3Options?.ToYtDlOptions() ?? new OptionSet 
+        { 
+            ExtractAudio = true, 
+            AudioFormat = AudioConversionFormat.Mp3, 
+            Cookies = "/tmp/cookies/cookies.txt" 
+        };
+        
+        return await mp3Dl.RunVideoDownload(url, overrideOptions: options);
+    }
 
     public async Task<string> GetVersion()
     {

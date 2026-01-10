@@ -48,7 +48,6 @@ public class YtDownloaderQueue(IServiceScopeFactory scopeFactory, ILogger<YtDown
                 var failedIds = failedDownloads.Select(d => d.Id).ToHashSet();
                 var sortedDownloads = queuedDownloads.Concat(failedDownloads)
                     .OrderBy(d => failedIds.Contains(d.Id) ? 1 : 0)
-                    .ThenBy(d => d.Later)
                     .ThenByDescending(d => d.Created)
                     .ToList();
 

@@ -58,12 +58,18 @@ internal class DownloadService(IDownloadRepository repository, IYtDlService ytDl
         await repository.Update(download, columnsToUpdate);
     }
 
+    public async Task<Download> Start(string url, int? tagId = null)
+    {
+        var item = await repository.Create(url, tagId);
+        return item;
+    }
+
     public async Task Start(Download item)
     {
         var columnsToUpdate = item.Start();
         await repository.Update(item, columnsToUpdate);
         
-        var result = await ytDlService.RunVideoDownload(item.Url, item.Later, p => HandleProgress(item, p));
+        var result = await ytDlService.RunVideoDownload(item.Url, p => HandleProgress(item, p));
         
         if (!result.Success)
         {
@@ -77,10 +83,28 @@ internal class DownloadService(IDownloadRepository repository, IYtDlService ytDl
         columnsToUpdate = item.Finish(fileSize);
         await repository.Update(item, columnsToUpdate);
 
-        var youtubeDirectory = $"/tmp/youtube{(item.Later ? "_later" : "")}";
-        Directory.CreateDirectory(youtubeDirectory);
-        
+        var youtubeDirectory = "/tmp/youtube";
         var filename = result.Data.SanitizeFileName();
+
+        if (item.Tag != null)
+        {
+            switch (item.Tag.Usage)
+            {
+                case TagUsage.Directory:
+                    youtubeDirectory = $"/tmp/{item.Tag.Value}";
+                    break;
+                case TagUsage.Prefix:
+                    filename = $"{item.Tag.Value}_{filename}";
+                    break;
+                case TagUsage.Suffix:
+                    var ext = Path.GetExtension(filename);
+                    var nameOnly = Path.GetFileNameWithoutExtension(filename);
+                    filename = $"{nameOnly}_{item.Tag.Value}{ext}";
+                    break;
+            }
+        }
+
+        Directory.CreateDirectory(youtubeDirectory);
         var finalFilename = filename.GetUniqueFileName(youtubeDirectory);
         var finalPath = Path.Combine(youtubeDirectory, finalFilename);
         

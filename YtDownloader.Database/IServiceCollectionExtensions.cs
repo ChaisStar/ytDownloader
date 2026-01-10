@@ -55,6 +55,8 @@ public static class IServiceCollectionExtensions
         services.AddDbContextPool<YtDownloaderContext>(options => options
             .UseNpgsql(dbConnectionString));
         services.AddScoped<IDownloadRepository, DownloadEntityRepository>();
+        services.AddScoped<IOptionSetRepository, OptionSetRepository>();
+        services.AddScoped<ITagRepository, TagRepository>();
 
         services.AddFluentMigratorCore()
             .ConfigureRunner(rb => rb

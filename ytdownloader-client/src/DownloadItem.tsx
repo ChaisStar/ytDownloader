@@ -1,5 +1,19 @@
 import { DownloadStatus } from "./DownloadStatus";
 
+export enum TagUsage {
+    Directory = 0,
+    Prefix = 1,
+    Suffix = 2
+}
+
+export type Tag = {
+    id: number;
+    name: string;
+    value: string;
+    usage: TagUsage;
+    color?: string;
+}
+
 export type DownloadItem = {
     readonly id: number;
     readonly url: string;
@@ -14,5 +28,6 @@ export type DownloadItem = {
     created: Date;
     started?: Date;
     finished?: Date;
-    readonly later: boolean;
+    tagId?: number;
+    tag?: Tag;
 };

@@ -8,15 +8,6 @@ public static class IServiceCollectionExtensions
 {
     public static IServiceCollection AddYtDownloaderServices(this IServiceCollection services)
     {
-        services.AddSingleton<YtDlMainOptionSet>();
-        services.AddSingleton<YtDlVideoOptionSet>();
-        services.AddSingleton<YtDlVideoOptionSetMergeFlexible>();
-        services.AddSingleton<YtDlVideoOptionSetNoThumbnail>();
-        services.AddSingleton<YtDlVideoOptionSetAutoMerge>();
-        services.AddSingleton<YtDlVideoOptionSetBestPreMerged>();
-        services.AddSingleton<YtDlVideoOptionSetRawDownload>();
-        services.AddSingleton<YtDlVideoOptionSetVideoOnly>();
-        services.AddSingleton<YtDlMp3OptionSet>();
         services.AddSingleton<IYtDlService, YtDlService>();
         services.AddScoped<IDownloadService, DownloadService>();
         services.AddScoped<IMp3DownloadService, Mp3DownloadService>();

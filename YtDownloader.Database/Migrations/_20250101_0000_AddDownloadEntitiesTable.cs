@@ -22,7 +22,7 @@ public class AddDownloadEntitiesTable : Migration
             .WithColumn(nameof(DownloadEntity.Created)).AsDateTime().NotNullable()
             .WithColumn(nameof(DownloadEntity.Started)).AsDateTime().Nullable()
             .WithColumn(nameof(DownloadEntity.Finished)).AsDateTime().Nullable()
-            .WithColumn(nameof(DownloadEntity.Later)).AsBoolean().NotNullable();
+            .WithColumn("Later").AsBoolean().NotNullable();
     }
     public override void Down() => Delete.Table("Downloads");
 }

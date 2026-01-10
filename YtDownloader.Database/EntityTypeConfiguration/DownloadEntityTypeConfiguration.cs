@@ -14,6 +14,5 @@ internal class DownloadEntityTypeConfiguration : IEntityTypeConfiguration<Downlo
         builder.Property(x => x.Url).IsRequired();
         builder.Property(x => x.Status).IsRequired();
         builder.Property(x => x.Created).IsRequired();
-        builder.Property(x => x.Later).IsRequired();
     }
 }

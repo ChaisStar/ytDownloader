@@ -24,6 +24,7 @@ services:
         - DATABASE_USER=root
         - DATABASE_PASSWORD=root
         - DATABASE_HOST=database
+        - ASPNETCORE_URLS=http://+:8080
     volumes:
         - ./volumes/youtube:/tmp/youtube
         - ./volumes/youtube_later:/tmp/youtube_later
@@ -34,4 +35,4 @@ services:
         - 8081:8081
     build:
       context: .
-      dockerfile: ./YtDownloader.Api/Dockerfile
+      dockerfile: ./Dockerfile

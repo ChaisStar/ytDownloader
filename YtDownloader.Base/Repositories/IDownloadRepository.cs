@@ -15,7 +15,7 @@ public interface IDownloadRepository
 
     Task<IReadOnlyList<Download>> GetUndefined();
 
-    Task<Download> Create(string url, bool later);
+    Task<Download> Create(string url, int? tagId = null);
 
     Task<Download> Update(Download download, string[] columnsToUpdate);
 

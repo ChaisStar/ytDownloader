@@ -1,13 +1,11 @@
 ﻿using FastEndpoints;
-
 using FluentValidation.Results;
-
 using YtDownloader.Api.Models;
-using YtDownloader.Base.Repositories;
+using YtDownloader.Core.Services;
 
 namespace YtDownloader.Api.Features.Download;
 
-public class CreateDownloadEndpoint(IDownloadRepository repository) : Endpoint<AddDownloadRequest, DownloadResponse>
+public class CreateDownloadEndpoint(IDownloadService downloadService) : Endpoint<AddDownloadRequest, DownloadResponse>
 {
     public override void Configure()
     {
@@ -26,7 +24,8 @@ public class CreateDownloadEndpoint(IDownloadRepository repository) : Endpoint<A
             }
         }
         ThrowIfAnyErrors(400);
-        var item = await repository.Create(req.Url!, req.Later);
+        
+        var item = await downloadService.Start(req.Url!, req.TagId);
         await Send.OkAsync(new DownloadResponse(item), cancellation: ct);
     }
 }

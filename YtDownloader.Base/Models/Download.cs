@@ -16,15 +16,16 @@ public class Download
     public DateTime Created { get; private set; }
     public DateTime? Started { get; private set; }
     public DateTime? Finished { get; private set; }
-    public bool Later { get; }
+    public int? TagId { get; private set; }
+    public Tag? Tag { get; set; }
     public string? ErrorMessage { get; private set; }
     public int Retries { get; private set; }
 
-    public Download(int id, string url, bool later = false)
+    public Download(int id, string url, int? tagId = null)
     {
         Id = id;
         Url = url ?? throw new ArgumentNullException(nameof(url));
-        Later = later;
+        TagId = tagId;
         Status = DownloadStatus.Pending;
         Progress = 0;
         Created = DateTime.UtcNow;
@@ -37,15 +38,16 @@ public class Download
     public static Download CreateFromDatabase(int id, string url, string? thumbnail, string? title,
         DownloadStatus status, int progress, long? totalSize, string? speed,
         string? eTA, DateTime created, DateTime? started, DateTime? finished,
-        bool later, string? errorMessage, int retries = 0)
+        string? errorMessage, int retries = 0, int? tagId = null, Tag? tag = null)
 #pragma warning restore S107
     {
         #pragma warning disable CS8601
-        return new Download(id, url, later)
+        return new Download(id, url, tagId)
         #pragma warning restore CS8601
         {
             Thumbnail = thumbnail,
             Title = title,
+            Tag = tag,
             Status = status,
             Progress = progress,
             TotalSize = totalSize,

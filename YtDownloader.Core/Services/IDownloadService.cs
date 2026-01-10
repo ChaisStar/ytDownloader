@@ -9,6 +9,7 @@ namespace YtDownloader.Core.Services
         Task<IReadOnlyList<Download>> GetFailedDownloads();
         Task<IReadOnlyList<Download>> GetUndefinedDownloads();
         Task Start(Download item);
+        Task<Download> Start(string url, int? tagId = null);
         Task UpdateInfo(Download download);
     }
 }

@@ -1,4 +1,7 @@
 import { format } from "date-fns";
+import { OptionSetManager } from "./OptionSetManager";
+import { TagManager } from "./TagManager";
+import { Tag } from "./DownloadItem";
 
 interface SettingsProps {
     ytDlpVersion: string;
@@ -9,11 +12,20 @@ interface SettingsProps {
         size: number;
         exists: boolean;
     };
+    tags: Tag[];
+    onTagsRefresh: () => void;
 }
 
-export function Settings({ ytDlpVersion, isUpdating, onUpdateYtDlp, cookiesInfo }: SettingsProps) {
+export function Settings({ 
+    ytDlpVersion, 
+    isUpdating, 
+    onUpdateYtDlp, 
+    cookiesInfo,
+    tags,
+    onTagsRefresh 
+}: SettingsProps) {
     return (
-        <div className="max-w-3xl space-y-4">
+        <div className="space-y-6">
             <h2 className="text-xl font-bold text-gray-900 px-1">System Settings</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -109,6 +121,11 @@ export function Settings({ ytDlpVersion, isUpdating, onUpdateYtDlp, cookiesInfo 
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                <OptionSetManager />
+                <TagManager tags={tags} onRefresh={onTagsRefresh} />
             </div>
             
             {/* System Status Banner */}

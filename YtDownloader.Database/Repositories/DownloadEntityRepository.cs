@@ -11,9 +11,9 @@ namespace YtDownloader.Database.Repositories;
 
 internal class DownloadEntityRepository(YtDownloaderContext context) : IDownloadRepository
 {
-    public async Task<Download> Create(string url, bool later)
+    public async Task<Download> Create(string url, int? tagId = null)
     {
-        var existing = await context.Downloads.FirstOrDefaultAsync(d => d.Url == url);
+        var existing = await context.Downloads.Include(d => d.Tag).FirstOrDefaultAsync(d => d.Url == url);
         if (existing is not null)
         {
             return existing;
@@ -21,39 +21,41 @@ internal class DownloadEntityRepository(YtDownloaderContext context) : IDownload
         var download = new DownloadEntity()
         {
             Url = url,
-            Later = later,
+            TagId = tagId,
             Created = DateTime.UtcNow
         };
         context.Downloads.Add(download);
         await context.SaveChangesAsync();
-        return download;
+        return await Get(download.Id);
     }
 
-    public async Task<Download> Get(int id) => await context.Downloads.FindAsync(id) ?? throw new ArgumentException("Not found");
+    public async Task<Download> Get(int id) => await context.Downloads.Include(d => d.Tag).FirstOrDefaultAsync(d => d.Id == id) ?? throw new ArgumentException("Not found");
 
-    public async Task<Download> Get(string url) => await context.Downloads.FirstOrDefaultAsync(d => d.Url == url) ?? throw new ArgumentException("Not found");
+    public async Task<Download> Get(string url) => await context.Downloads.Include(d => d.Tag).FirstOrDefaultAsync(d => d.Url == url) ?? throw new ArgumentException("Not found");
 
     public async Task<IReadOnlyList<Download>> Get(DateTime from, DateTime? to = null)
     {
-        var query = context.Downloads.Where(d => d.Created >= from.Date);
+        var query = context.Downloads.Include(d => d.Tag).Where(d => d.Created >= from.Date);
         if (to is not null)
         {
             query = query.Where(d => d.Created < to.Value.Date.AddDays(1).Date);
         }
-        var downloads = await query.Cast<Download>().ToListAsync();
-        return downloads;
+        var downloads = await query.ToListAsync();
+        return downloads.Select(d => (Download)d).ToList();
     }
 
     public async Task<IReadOnlyList<Download>> Get(params DownloadStatus[] downloadStatuses)
     {
-        var query = context.Downloads.Where(d => downloadStatuses.Contains(d.Status));
-        return await query.Cast<Download>().ToListAsync();
+        var query = context.Downloads.Include(d => d.Tag).Where(d => downloadStatuses.Contains(d.Status));
+        var downloads = await query.ToListAsync();
+        return downloads.Select(d => (Download)d).ToList();
     }
 
     public async Task<IReadOnlyList<Download>> GetUndefined()
     {
-        var query = context.Downloads.Where(d => d.Title == null && d.Status != DownloadStatus.Pending);
-        return await query.Cast<Download>().ToListAsync();
+        var query = context.Downloads.Include(d => d.Tag).Where(d => d.Title == null && d.Status != DownloadStatus.Pending);
+        var downloads = await query.ToListAsync();
+        return downloads.Select(d => (Download)d).ToList();
     }
 
     public async Task Remove(int id)

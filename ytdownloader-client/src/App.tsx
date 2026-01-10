@@ -1,5 +1,5 @@
-﻿import { useEffect, useState } from "react";
-import { DownloadItem } from "./DownloadItem";
+﻿import React, { useEffect, useState } from "react";
+import { DownloadItem, Tag } from "./DownloadItem";
 import { format, differenceInSeconds } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { Line } from "rc-progress";
@@ -61,12 +61,7 @@ const processDownloadData = (data: DownloadItem[]): DownloadItem[] => {
         const statusDiff = statusOrder[a.status] - statusOrder[b.status];
         if (statusDiff !== 0) return statusDiff;
         
-        // Within same status, prioritize items without "later" flag
-        if (a.later !== b.later) {
-            return a.later ? 1 : -1;  // false (later: false) comes first
-        }
-        
-        // Within same status and later flag, show newest first
+        // Within same status, show newest first
         return new Date(b.created).getTime() - new Date(a.created).getTime();
     });
 
@@ -77,14 +72,154 @@ function App() {
     const [downloads, setDownloads] = useState<DownloadItem[]>([]);
     const [archivedDownloads, setArchivedDownloads] = useState<DownloadItem[]>([]);
     const [url, setUrl] = useState<string>("");
-    const [later, setLater] = useState<boolean>(false);
     const [expandedId, setExpandedId] = useState<number | null>(null);
     const [ytDlpVersion, setYtDlpVersion] = useState<string>("");
     const [cookiesInfo, setCookiesInfo] = useState<{ lastModified?: string; size: number; exists: boolean }>({ size: 0, exists: false });
     const [isUpdating, setIsUpdating] = useState(false);
     const [activeTab, setActiveTab] = useState<"current" | "archive" | "settings">("current");
+    const [tags, setTags] = useState<Tag[]>([]);
+    const [selectedTagId, setSelectedTagId] = useState<number | null>(null);
 
-    // SignalR connection effect
+    // Refresh tags
+    const fetchTags = async () => {
+        try {
+            const res = await fetch(`${URL}/tags`);
+            if (res.ok) {
+                const data = await res.json();
+                console.log("Fetched tags:", data);
+                // Ensure data is an array
+                if (Array.isArray(data)) {
+                    setTags(data);
+                } else {
+                    console.error("Tags data is not an array:", data);
+                }
+            } else {
+                console.error("Failed to fetch tags:", res.status);
+            }
+        } catch (e) {
+            console.error("Failed to fetch tags", e);
+        }
+    };
+
+    const renderMainContent = () => {
+        if (activeTab === "settings") {
+            return (
+                <Settings 
+                    ytDlpVersion={ytDlpVersion}
+                    isUpdating={isUpdating}
+                    onUpdateYtDlp={handleUpdateYtDlp}
+                    cookiesInfo={cookiesInfo}
+                    tags={tags}
+                    onTagsRefresh={fetchTags}
+                />
+            );
+        }
+
+        return (
+            <div className="overflow-x-auto rounded-lg shadow-md border border-gray-200">
+                <table className="min-w-full divide-y divide-gray-200 text-xs md:text-sm">
+                    <thead className="bg-gradient-to-r from-gray-800 to-gray-700">
+                        <tr>
+                            {["", "Thumbnail", "Title", "Status", "Size", "Created", "Duration", "Tag", "Action"].map((header) => (
+                                <th key={header} className={`px-2 md:px-4 py-2 md:py-3 font-semibold text-white text-left uppercase tracking-wide ${["Thumbnail", "Created", "Duration", "Tag"].includes(header) ? "hidden md:table-cell" : ""}`}>
+                                    {header}
+                                </th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 bg-white">
+                        {(activeTab === "current" ? downloads : archivedDownloads).map((item) => {
+                            const statusDisplay = getStatusDisplay(item.status);
+                            const isExpanded = expandedId === item.id;
+                            return (
+                                <React.Fragment key={item.id}>
+                                <tr className="hover:bg-blue-50 transition-colors">
+                                    <td className="px-2 md:px-4 py-2 md:py-3 text-center">
+                                        <button
+                                            onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                                            className="text-blue-600 hover:text-blue-800 font-bold cursor-pointer transition-colors"
+                                            title={item.errorMessage ? "Click to view error details" : "No details"}
+                                            type="button"
+                                        >
+                                            {isExpanded ? "▼" : "▶"}
+                                        </button>
+                                    </td>
+                                    <td className="px-2 md:px-4 py-2 md:py-3 hidden md:table-cell">
+                                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline transition-colors">
+                                            {item.thumbnail ? <img src={item.thumbnail} alt="Thumbnail" className="w-16 h-auto rounded" /> : "N/A"}
+                                        </a>
+                                    </td>
+                                    <td className="px-2 md:px-4 py-2 md:py-3 max-w-xs truncate text-gray-900 font-medium">{item.title ?? item.url}</td>
+                                    <td className="px-2 md:px-4 py-2 md:py-3">
+                                        {item.status === DownloadStatus.Downloading ? (
+                                            <div className="flex flex-col space-y-1">
+                                                <div className="flex items-center space-x-1 md:space-x-2">
+                                                    <Line 
+                                                        percent={item.progress} 
+                                                        strokeWidth={2} 
+                                                        strokeColor="#4CAF50"
+                                                        trailColor="#D9D9D9"
+                                                        style={{ width: "60px" }}
+                                                    />
+                                                    <span className="font-semibold text-xs">{item.progress}%</span>
+                                                </div>
+                                                <div className="text-gray-700 text-xs hidden md:block">Speed: {item.speed ?? "-"}</div>
+                                                <div className="text-gray-700 text-xs hidden md:block">ETA: {item.eta ?? "-"}</div>
+                                            </div>
+                                        ) : (
+                                            <span className={`font-semibold ${statusDisplay.className}`}>
+                                                {statusDisplay.text}
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td className="px-2 md:px-4 py-2 md:py-3 font-medium text-gray-900">{formatFileSize(item.totalSize)}</td>
+                                    <td className="px-2 md:px-4 py-2 md:py-3 text-gray-700 hidden md:table-cell">{formatDate(item.created, "dd-MM HH:mm")}</td>
+                                    <td className="px-2 md:px-4 py-2 md:py-3 text-gray-700 hidden md:table-cell">{calculateDuration(item.started, item.finished)}</td>
+                                    <td className="px-2 md:px-4 py-2 md:py-3 text-center hidden md:table-cell">
+                                        <div className="flex flex-col gap-1 items-center">
+                                            {item.tag && (
+                                                <span 
+                                                    className="inline-block px-2 py-0.5 rounded text-[10px] font-bold text-white shadow-sm"
+                                                    style={{ backgroundColor: item.tag.color || '#6366f1' }}
+                                                >
+                                                    {item.tag.name}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="px-2 md:px-4 py-2 md:py-3">
+                                        <button
+                                            onClick={() => handleDelete(item.id)}
+                                            className="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-2 text-xs rounded"
+                                        >
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                                {isExpanded && item.errorMessage && (
+                                    <tr className="bg-red-50 hover:bg-red-100">
+                                        <td colSpan={9} className="px-2 md:px-4 py-3 md:py-4">
+                                            <div className="bg-red-50 border-l-4 border-red-600 p-4 rounded text-red-800">
+                                                <div className="font-semibold mb-2 text-red-900">Error Details:</div>
+                                                <div className="whitespace-pre-wrap text-sm font-mono bg-red-100 p-3 rounded border border-red-300 overflow-auto max-h-48 text-red-800">
+                                                    {item.errorMessage}
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
+                                </React.Fragment>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+        );
+    };
+
+    useEffect(() => {
+        fetchTags();
+    }, []);
     useEffect(() => {
         const connection = new signalR.HubConnectionBuilder()
             .withUrl(`${URL}/hub/downloads`)
@@ -128,6 +263,8 @@ function App() {
                     const info = await cookiesResponse.json();
                     setCookiesInfo(info);
                 }
+
+                await fetchTags();
             } catch (error) {
                 console.error("Error fetching initial data:", error);
             }
@@ -182,7 +319,7 @@ function App() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                     url,
-                    later,
+                    tagId: selectedTagId
                 }),
         });
 
@@ -192,7 +329,7 @@ function App() {
 
         // Оновлення списку після додавання
         setUrl("");
-        setLater(false);
+        setSelectedTagId(null);
     } catch (error) {
         console.error("Error adding download:", error);
         alert("Failed to add download");
@@ -287,19 +424,35 @@ function App() {
                             placeholder="Enter YouTube URL"
                             className="border border-gray-300 px-3 py-2 rounded text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                         />
-                        <div className="flex items-center justify-between gap-2">
-                            <label className="flex items-center space-x-2 text-gray-700 font-medium text-sm md:text-base">
-                                <input
-                                    type="checkbox"
-                                    checked={later}
-                                    onChange={() => setLater((current) => !current)}
-                                    className="w-4 h-4 rounded border-gray-300 cursor-pointer"
-                                />
-                                <span>Later</span>
-                            </label>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <div className="flex items-center gap-2 flex-1">
+                                <span className="text-xs font-bold text-gray-500 uppercase tracking-tight">Tag:</span>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {tags.length > 0 ? tags.map(tag => (
+                                        <button 
+                                            key={tag.id}
+                                            onClick={() => setSelectedTagId(selectedTagId === tag.id ? null : tag.id)}
+                                            className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+                                                selectedTagId === tag.id 
+                                                ? 'shadow-sm' 
+                                                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                                            }`}
+                                            style={selectedTagId === tag.id ? { 
+                                                backgroundColor: tag.color || '#6366f1', 
+                                                color: 'white',
+                                                borderColor: tag.color || '#6366f1'
+                                            } : {}}
+                                        >
+                                            {tag.name}
+                                        </button>
+                                    )) : (
+                                        <span className="text-[10px] text-gray-400 italic py-1 px-1">No tags created</span>
+                                    )}
+                                </div>
+                            </div>
                             <button
                                 onClick={handleAdd}
-                                className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 text-sm md:text-base rounded flex-1"
+                                className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 text-sm rounded transition-all shadow-md active:scale-95"
                             >
                                 Add
                             </button>
@@ -340,102 +493,7 @@ function App() {
                 )}
             </div>
 
-            {activeTab === "settings" ? (
-                <Settings 
-                    ytDlpVersion={ytDlpVersion}
-                    isUpdating={isUpdating}
-                    onUpdateYtDlp={handleUpdateYtDlp}
-                    cookiesInfo={cookiesInfo}
-                />
-            ) : (
-                <div className="overflow-x-auto rounded-lg shadow-md border border-gray-200">
-                    <table className="min-w-full divide-y divide-gray-200 text-xs md:text-sm">
-                        <thead className="bg-gradient-to-r from-gray-800 to-gray-700">
-                            <tr>
-                                {["", "Thumbnail", "Title", "Status", "Size", "Created", "Duration", "Later", "Action"].map((header) => (
-                                    <th key={header} className={`px-2 md:px-4 py-2 md:py-3 font-semibold text-white text-left uppercase tracking-wide ${["Thumbnail", "Created", "Duration", "Later"].includes(header) ? "hidden md:table-cell" : ""}`}>
-                                        {header}
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 bg-white">
-                            {(activeTab === "current" ? downloads : archivedDownloads).map((item) => {
-                                const statusDisplay = getStatusDisplay(item.status);
-                                const isExpanded = expandedId === item.id;
-                                return (
-                                    <>
-                                    <tr key={item.id} className="hover:bg-blue-50 transition-colors">
-                                        <td className="px-2 md:px-4 py-2 md:py-3 text-center">
-                                            <button
-                                                onClick={() => setExpandedId(isExpanded ? null : item.id)}
-                                                className="text-blue-600 hover:text-blue-800 font-bold cursor-pointer transition-colors"
-                                                title={item.errorMessage ? "Click to view error details" : "No details"}
-                                                type="button"
-                                            >
-                                                {isExpanded ? "▼" : "▶"}
-                                            </button>
-                                        </td>
-                                        <td className="px-2 md:px-4 py-2 md:py-3 hidden md:table-cell">
-                                            <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline transition-colors">
-                                                {item.thumbnail ? <img src={item.thumbnail} alt="Thumbnail" className="w-16 h-auto rounded" /> : "N/A"}
-                                            </a>
-                                        </td>
-                                        <td className="px-2 md:px-4 py-2 md:py-3 max-w-xs truncate text-gray-900 font-medium">{item.title ?? item.url}</td>
-                                        <td className="px-2 md:px-4 py-2 md:py-3">
-                                            {item.status === DownloadStatus.Downloading ? (
-                                                <div className="flex flex-col space-y-1">
-                                                    <div className="flex items-center space-x-1 md:space-x-2">
-                                                        <Line 
-                                                            percent={item.progress} 
-                                                            strokeWidth={2} 
-                                                            strokeColor="#4CAF50"
-                                                            trailColor="#D9D9D9"
-                                                            style={{ width: "60px" }}
-                                                        />
-                                                        <span className="font-semibold text-xs">{item.progress}%</span>
-                                                    </div>
-                                                    <div className="text-gray-700 text-xs hidden md:block">Speed: {item.speed ?? "-"}</div>
-                                                    <div className="text-gray-700 text-xs hidden md:block">ETA: {item.eta ?? "-"}</div>
-                                                </div>
-                                            ) : (
-                                                <span className={`font-semibold ${statusDisplay.className}`}>
-                                                    {statusDisplay.text}
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-2 md:px-4 py-2 md:py-3 font-medium text-gray-900">{formatFileSize(item.totalSize)}</td>
-                                        <td className="px-2 md:px-4 py-2 md:py-3 text-gray-700 hidden md:table-cell">{formatDate(item.created, "dd-MM HH:mm")}</td>
-                                        <td className="px-2 md:px-4 py-2 md:py-3 text-gray-700 hidden md:table-cell">{calculateDuration(item.started, item.finished)}</td>
-                                        <td className="px-2 md:px-4 py-2 md:py-3 text-center hidden md:table-cell">{item.later ? <span className="inline-block bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-semibold">Later</span> : ""}</td>
-                                        <td className="px-2 md:px-4 py-2 md:py-3">
-                                            <button
-                                                onClick={() => handleDelete(item.id)}
-                                                className="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-2 text-xs rounded"
-                                            >
-                                                Delete
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    {isExpanded && item.errorMessage && (
-                                        <tr className="bg-red-50 hover:bg-red-100">
-                                            <td colSpan={9} className="px-2 md:px-4 py-3 md:py-4">
-                                                <div className="bg-red-50 border-l-4 border-red-600 p-4 rounded text-red-800">
-                                                    <div className="font-semibold mb-2 text-red-900">Error Details:</div>
-                                                    <div className="whitespace-pre-wrap text-sm font-mono bg-red-100 p-3 rounded border border-red-300 overflow-auto max-h-48 text-red-800">
-                                                        {item.errorMessage}
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    )}
-                                    </>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+            {renderMainContent()}
         </div>
     );
 }

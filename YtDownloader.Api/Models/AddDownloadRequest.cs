@@ -8,5 +8,5 @@ public class AddDownloadRequest
     [Url]
     public string? Url { get; set; }
 
-    public bool Later { get; set; } = false;
+    public int? TagId { get; set; }
 }
