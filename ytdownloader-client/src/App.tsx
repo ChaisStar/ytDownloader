@@ -4,6 +4,7 @@ import { format, differenceInSeconds } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { Line } from "rc-progress";
 import { DownloadStatus } from "./DownloadStatus";
+import { Settings } from "./Settings";
 import * as signalR from "@microsoft/signalr";
 
 const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -81,7 +82,7 @@ function App() {
     const [ytDlpVersion, setYtDlpVersion] = useState<string>("");
     const [cookiesInfo, setCookiesInfo] = useState<{ lastModified?: string; size: number; exists: boolean }>({ size: 0, exists: false });
     const [isUpdating, setIsUpdating] = useState(false);
-    const [activeTab, setActiveTab] = useState<"current" | "archive">("current");
+    const [activeTab, setActiveTab] = useState<"current" | "archive" | "settings">("current");
 
     // SignalR connection effect
     useEffect(() => {
@@ -307,50 +308,26 @@ function App() {
                 </div>
             </div>
 
-            {/* Info Section - Hidden on mobile */}
-            <div className="hidden md:flex flex-row gap-2 mb-6 text-xs">
-                <div className="flex items-center space-x-2 bg-gray-100 border border-gray-300 rounded px-3 py-2">
-                    <span className="text-blue-600 font-bold">⬆</span>
-                    <div className="flex-1">
-                        <p className="text-gray-600 font-medium">yt-dlp: {ytDlpVersion || "..."}</p>
-                    </div>
-                    <button
-                        onClick={handleUpdateYtDlp}
-                        disabled={isUpdating}
-                        className="bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white font-semibold py-0.5 px-2 rounded text-xs whitespace-nowrap"
-                    >
-                        {isUpdating ? "..." : "Update"}
-                    </button>
-                </div>
-
-                <div className="flex items-center space-x-2 bg-gray-100 border border-gray-300 rounded px-3 py-2 flex-1">
-                    <span className="text-green-600 font-bold">🍪</span>
-                    <div className="flex-1 min-w-0">
-                        {cookiesInfo.exists ? (
-                            <p className="text-gray-700 truncate">
-                                Cookies: {cookiesInfo.lastModified && <span>{new Date(cookiesInfo.lastModified).toLocaleDateString()}</span>}
-                            </p>
-                        ) : (
-                            <p className="text-gray-700">Cookies: Not configured</p>
-                        )}
-                    </div>
-                </div>
-            </div>
-
             {/* Tab Navigation */}
             <div className="mb-4 md:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b-2 border-gray-200">
                 <div className="flex space-x-2 w-full sm:w-auto">
                     <button
                         onClick={() => setActiveTab("current")}
-                        className={`px-3 md:px-4 py-2 md:py-3 text-sm md:text-base font-semibold transition-colors duration-200 border-b-2 ${activeTab === "current" ? "text-blue-600 border-blue-600" : "text-gray-600 hover:text-gray-900 border-transparent"}`}
+                        className={`px-3 md:px-4 py-2 md:py-3 text-sm md:text-base font-semibold transition-colors duration-200 border-b-2 cursor-pointer ${activeTab === "current" ? "text-blue-600 border-blue-600" : "text-gray-600 hover:text-gray-900 border-transparent"}`}
                     >
                         Current ({downloads.length})
                     </button>
                     <button
                         onClick={() => setActiveTab("archive")}
-                        className={`px-3 md:px-4 py-2 md:py-3 text-sm md:text-base font-semibold transition-colors duration-200 border-b-2 ${activeTab === "archive" ? "text-blue-600 border-blue-600" : "text-gray-600 hover:text-gray-900 border-transparent"}`}
+                        className={`px-3 md:px-4 py-2 md:py-3 text-sm md:text-base font-semibold transition-colors duration-200 border-b-2 cursor-pointer ${activeTab === "archive" ? "text-blue-600 border-blue-600" : "text-gray-600 hover:text-gray-900 border-transparent"}`}
                     >
                         Archive ({archivedDownloads.length})
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("settings")}
+                        className={`px-3 md:px-4 py-2 md:py-3 text-sm md:text-base font-semibold transition-colors duration-200 border-b-2 cursor-pointer ${activeTab === "settings" ? "text-blue-600 border-blue-600" : "text-gray-600 hover:text-gray-900 border-transparent"}`}
+                    >
+                        Settings
                     </button>
                 </div>
                 {activeTab === "archive" && archivedDownloads.length > 0 && (
@@ -362,93 +339,103 @@ function App() {
                     </button>
                 )}
             </div>
-            <div className="overflow-x-auto rounded-lg shadow-md border border-gray-200">
-                <table className="min-w-full divide-y divide-gray-200 text-xs md:text-sm">
-                    <thead className="bg-gradient-to-r from-gray-800 to-gray-700">
-                        <tr>
-                            {["", "Thumbnail", "Title", "Status", "Size", "Created", "Duration", "Later", "Action"].map((header) => (
-                                <th key={header} className={`px-2 md:px-4 py-2 md:py-3 font-semibold text-white text-left uppercase tracking-wide ${["Thumbnail", "Created", "Duration", "Later"].includes(header) ? "hidden md:table-cell" : ""}`}>
-                                    {header}
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 bg-white">
-                        {(activeTab === "current" ? downloads : archivedDownloads).map((item) => {
-                            const statusDisplay = getStatusDisplay(item.status);
-                            const isExpanded = expandedId === item.id;
-                            return (
-                                <>
-                                <tr key={item.id} className="hover:bg-blue-50 transition-colors">
-                                    <td className="px-2 md:px-4 py-2 md:py-3 text-center">
-                                        <button
-                                            onClick={() => setExpandedId(isExpanded ? null : item.id)}
-                                            className="text-blue-600 hover:text-blue-800 font-bold cursor-pointer transition-colors"
-                                            title={item.errorMessage ? "Click to view error details" : "No details"}
-                                            type="button"
-                                        >
-                                            {isExpanded ? "▼" : "▶"}
-                                        </button>
-                                    </td>
-                                    <td className="px-2 md:px-4 py-2 md:py-3 hidden md:table-cell">
-                                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline transition-colors">
-                                            {item.thumbnail ? <img src={item.thumbnail} alt="Thumbnail" className="w-16 h-auto rounded" /> : "N/A"}
-                                        </a>
-                                    </td>
-                                    <td className="px-2 md:px-4 py-2 md:py-3 max-w-xs truncate text-gray-900 font-medium">{item.title ?? item.url}</td>
-                                    <td className="px-2 md:px-4 py-2 md:py-3">
-                                        {item.status === DownloadStatus.Downloading ? (
-                                            <div className="flex flex-col space-y-1">
-                                                <div className="flex items-center space-x-1 md:space-x-2">
-                                                    <Line 
-                                                        percent={item.progress} 
-                                                        strokeWidth={2} 
-                                                        strokeColor="#4CAF50"
-                                                        trailColor="#D9D9D9"
-                                                        style={{ width: "60px" }}
-                                                    />
-                                                    <span className="font-semibold text-xs">{item.progress}%</span>
+
+            {activeTab === "settings" ? (
+                <Settings 
+                    ytDlpVersion={ytDlpVersion}
+                    isUpdating={isUpdating}
+                    onUpdateYtDlp={handleUpdateYtDlp}
+                    cookiesInfo={cookiesInfo}
+                />
+            ) : (
+                <div className="overflow-x-auto rounded-lg shadow-md border border-gray-200">
+                    <table className="min-w-full divide-y divide-gray-200 text-xs md:text-sm">
+                        <thead className="bg-gradient-to-r from-gray-800 to-gray-700">
+                            <tr>
+                                {["", "Thumbnail", "Title", "Status", "Size", "Created", "Duration", "Later", "Action"].map((header) => (
+                                    <th key={header} className={`px-2 md:px-4 py-2 md:py-3 font-semibold text-white text-left uppercase tracking-wide ${["Thumbnail", "Created", "Duration", "Later"].includes(header) ? "hidden md:table-cell" : ""}`}>
+                                        {header}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 bg-white">
+                            {(activeTab === "current" ? downloads : archivedDownloads).map((item) => {
+                                const statusDisplay = getStatusDisplay(item.status);
+                                const isExpanded = expandedId === item.id;
+                                return (
+                                    <>
+                                    <tr key={item.id} className="hover:bg-blue-50 transition-colors">
+                                        <td className="px-2 md:px-4 py-2 md:py-3 text-center">
+                                            <button
+                                                onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                                                className="text-blue-600 hover:text-blue-800 font-bold cursor-pointer transition-colors"
+                                                title={item.errorMessage ? "Click to view error details" : "No details"}
+                                                type="button"
+                                            >
+                                                {isExpanded ? "▼" : "▶"}
+                                            </button>
+                                        </td>
+                                        <td className="px-2 md:px-4 py-2 md:py-3 hidden md:table-cell">
+                                            <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline transition-colors">
+                                                {item.thumbnail ? <img src={item.thumbnail} alt="Thumbnail" className="w-16 h-auto rounded" /> : "N/A"}
+                                            </a>
+                                        </td>
+                                        <td className="px-2 md:px-4 py-2 md:py-3 max-w-xs truncate text-gray-900 font-medium">{item.title ?? item.url}</td>
+                                        <td className="px-2 md:px-4 py-2 md:py-3">
+                                            {item.status === DownloadStatus.Downloading ? (
+                                                <div className="flex flex-col space-y-1">
+                                                    <div className="flex items-center space-x-1 md:space-x-2">
+                                                        <Line 
+                                                            percent={item.progress} 
+                                                            strokeWidth={2} 
+                                                            strokeColor="#4CAF50"
+                                                            trailColor="#D9D9D9"
+                                                            style={{ width: "60px" }}
+                                                        />
+                                                        <span className="font-semibold text-xs">{item.progress}%</span>
+                                                    </div>
+                                                    <div className="text-gray-700 text-xs hidden md:block">Speed: {item.speed ?? "-"}</div>
+                                                    <div className="text-gray-700 text-xs hidden md:block">ETA: {item.eta ?? "-"}</div>
                                                 </div>
-                                                <div className="text-gray-700 text-xs hidden md:block">Speed: {item.speed ?? "-"}</div>
-                                                <div className="text-gray-700 text-xs hidden md:block">ETA: {item.eta ?? "-"}</div>
-                                            </div>
-                                        ) : (
-                                            <span className={`font-semibold ${statusDisplay.className}`}>
-                                                {statusDisplay.text}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-2 md:px-4 py-2 md:py-3 font-medium text-gray-900">{formatFileSize(item.totalSize)}</td>
-                                    <td className="px-2 md:px-4 py-2 md:py-3 text-gray-700 hidden md:table-cell">{formatDate(item.created, "dd-MM HH:mm")}</td>
-                                    <td className="px-2 md:px-4 py-2 md:py-3 text-gray-700 hidden md:table-cell">{calculateDuration(item.started, item.finished)}</td>
-                                    <td className="px-2 md:px-4 py-2 md:py-3 text-center hidden md:table-cell">{item.later ? <span className="inline-block bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-semibold">Later</span> : ""}</td>
-                                    <td className="px-2 md:px-4 py-2 md:py-3">
-                                        <button
-                                            onClick={() => handleDelete(item.id)}
-                                            className="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-2 text-xs rounded"
-                                        >
-                                            Delete
-                                        </button>
-                                    </td>
-                                </tr>
-                                {isExpanded && item.errorMessage && (
-                                    <tr className="bg-red-50 hover:bg-red-100">
-                                        <td colSpan={9} className="px-2 md:px-4 py-3 md:py-4">
-                                            <div className="bg-red-50 border-l-4 border-red-600 p-4 rounded text-red-800">
-                                                <div className="font-semibold mb-2 text-red-900">Error Details:</div>
-                                                <div className="whitespace-pre-wrap text-sm font-mono bg-red-100 p-3 rounded border border-red-300 overflow-auto max-h-48 text-red-800">
-                                                    {item.errorMessage}
-                                                </div>
-                                            </div>
+                                            ) : (
+                                                <span className={`font-semibold ${statusDisplay.className}`}>
+                                                    {statusDisplay.text}
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-2 md:px-4 py-2 md:py-3 font-medium text-gray-900">{formatFileSize(item.totalSize)}</td>
+                                        <td className="px-2 md:px-4 py-2 md:py-3 text-gray-700 hidden md:table-cell">{formatDate(item.created, "dd-MM HH:mm")}</td>
+                                        <td className="px-2 md:px-4 py-2 md:py-3 text-gray-700 hidden md:table-cell">{calculateDuration(item.started, item.finished)}</td>
+                                        <td className="px-2 md:px-4 py-2 md:py-3 text-center hidden md:table-cell">{item.later ? <span className="inline-block bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-semibold">Later</span> : ""}</td>
+                                        <td className="px-2 md:px-4 py-2 md:py-3">
+                                            <button
+                                                onClick={() => handleDelete(item.id)}
+                                                className="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-2 text-xs rounded"
+                                            >
+                                                Delete
+                                            </button>
                                         </td>
                                     </tr>
-                                )}
-                                </>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
+                                    {isExpanded && item.errorMessage && (
+                                        <tr className="bg-red-50 hover:bg-red-100">
+                                            <td colSpan={9} className="px-2 md:px-4 py-3 md:py-4">
+                                                <div className="bg-red-50 border-l-4 border-red-600 p-4 rounded text-red-800">
+                                                    <div className="font-semibold mb-2 text-red-900">Error Details:</div>
+                                                    <div className="whitespace-pre-wrap text-sm font-mono bg-red-100 p-3 rounded border border-red-300 overflow-auto max-h-48 text-red-800">
+                                                        {item.errorMessage}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                    </>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
     );
 }

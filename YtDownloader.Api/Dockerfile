@@ -3,9 +3,9 @@
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 
-# Оновлення системи та встановлення Python3, pip, ffmpeg, yt-dlp
+# Оновлення системи та встановлення Python3, pip, ffmpeg, yt-dlp, та libicu
 RUN apt-get update && \
-    apt-get install -y curl ca-certificates xz-utils python3 python3-pip pipx && \
+    apt-get install -y curl ca-certificates xz-utils python3 python3-pip pipx libicu72 && \
     update-ca-certificates
 
 # Використання pipx для встановлення yt-dlp

@@ -1,16 +1,19 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 using YtDownloader.Base.Models;
 
 namespace YtDownloader.Core.Services;
 
-public class YtDownloaderQueue(IDownloadService downloadService, ILogger<YtDownloaderQueue> logger) : BackgroundService
+public class YtDownloaderQueue(IServiceScopeFactory scopeFactory, ILogger<YtDownloaderQueue> logger) : BackgroundService
 {
     private const int MaxSimultanouslyDownloads = 5;
     private const int CheckTimeout = 5 * 1000;
 
     private readonly SemaphoreSlim _semaphoreSlim = new(MaxSimultanouslyDownloads, MaxSimultanouslyDownloads);
+    private readonly HashSet<int> _activeDownloads = [];
+    private readonly object _lock = new();
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -20,41 +23,60 @@ public class YtDownloaderQueue(IDownloadService downloadService, ILogger<YtDownl
         {
             try
             {
+                using var mainScope = scopeFactory.CreateScope();
+                var downloadService = mainScope.ServiceProvider.GetRequiredService<IDownloadService>();
+
                 var undefinedDownloads = await downloadService.GetUndefinedDownloads();
-                logger.LogInformation("Found {UndefinedCount} undefined downloads", undefinedDownloads.Count);
                 foreach (var download in undefinedDownloads)
                 {
-                    logger.LogInformation("Updating info for download {DownloadId}: {Url}", download.Id, download.Url);
-                    await UpdateInfoAsync(download);
+                    lock (_lock)
+                    {
+                        if (!_activeDownloads.Add(download.Id)) continue;
+                    }
+                    
+                    _ = Task.Run(async () =>
+                    {
+                        try { await UpdateInfoAsync(download); }
+                        finally { lock (_lock) { _activeDownloads.Remove(download.Id); } }
+                    }, stoppingToken);
                 }
 
                 var queuedDownloads = await downloadService.GetPendingDownloads();
                 var failedDownloads = await downloadService.GetFailedDownloads();
-                logger.LogInformation("Found {PendingCount} pending and {FailedCount} failed downloads", queuedDownloads.Count, failedDownloads.Count);
                 
-                // Create a set of failed IDs for efficient lookup
+                // Combine and prioritize
                 var failedIds = failedDownloads.Select(d => d.Id).ToHashSet();
-                
-                // Combine all downloads and sort: pending first, then failed
-                var allDownloads = new List<Download>();
-                allDownloads.AddRange(queuedDownloads);
-                allDownloads.AddRange(failedDownloads);
-                
-                // Sort by: pending status first, then non-"later", then by creation date
-                var sortedDownloads = allDownloads
-                    .OrderBy(d => failedIds.Contains(d.Id) ? 1 : 0)  // Pending (0) before Failed (1)
-                    .ThenBy(d => d.Later)  // Non-"later" before "later"
-                    .ThenByDescending(d => d.Created)  // Newest first
+                var sortedDownloads = queuedDownloads.Concat(failedDownloads)
+                    .OrderBy(d => failedIds.Contains(d.Id) ? 1 : 0)
+                    .ThenBy(d => d.Later)
+                    .ThenByDescending(d => d.Created)
                     .ToList();
 
                 foreach (var download in sortedDownloads)
                 {
-                    logger.LogInformation("Processing download {DownloadId}: {Url}", download.Id, download.Url);
+                    lock (_lock)
+                    {
+                        if (!_activeDownloads.Add(download.Id)) continue;
+                    }
+
+                    logger.LogInformation("Enqueuing download {DownloadId}", download.Id);
+                    
                     _ = Task.Run(async () =>
                     {
-                        await UpdateInfoAsync(download);
-                        await RunAsync(download);
-                    });
+                        try
+                        {
+                            await UpdateInfoAsync(download);
+                            await RunAsync(download);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, "Background task error for {DownloadId}", download.Id);
+                        }
+                        finally
+                        {
+                            lock (_lock) { _activeDownloads.Remove(download.Id); }
+                        }
+                    }, stoppingToken);
                 }
 
                 await Task.Delay(CheckTimeout, stoppingToken);
@@ -65,12 +87,13 @@ public class YtDownloaderQueue(IDownloadService downloadService, ILogger<YtDownl
                 await Task.Delay(CheckTimeout, stoppingToken);
             }
         }
-
-        logger.LogInformation("YtDownloaderQueue stopping.");
     }
 
     private async Task UpdateInfoAsync(Download download)
     {
+        using var scope = scopeFactory.CreateScope();
+        var downloadService = scope.ServiceProvider.GetRequiredService<IDownloadService>();
+
         try
         {
             logger.LogInformation("Starting UpdateInfo for download {DownloadId}", download.Id);
@@ -90,6 +113,9 @@ public class YtDownloaderQueue(IDownloadService downloadService, ILogger<YtDownl
 
     private async Task RunAsync(Download download)
     {
+        using var scope = scopeFactory.CreateScope();
+        var downloadService = scope.ServiceProvider.GetRequiredService<IDownloadService>();
+
         try
         {
             await _semaphoreSlim.WaitAsync();

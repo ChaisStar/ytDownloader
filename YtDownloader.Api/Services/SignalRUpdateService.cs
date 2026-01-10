@@ -5,7 +5,7 @@ using System.IO;
 
 namespace YtDownloader.Api.Services;
 
-public class SignalRUpdateService(ISignalRBroadcaster broadcaster, IDownloadRepository downloadRepository) : BackgroundService
+public class SignalRUpdateService(ISignalRBroadcaster broadcaster, IServiceScopeFactory scopeFactory) : BackgroundService
 {
     private readonly PeriodicTimer _timer = new PeriodicTimer(TimeSpan.FromMilliseconds(200));
 
@@ -17,6 +17,9 @@ public class SignalRUpdateService(ISignalRBroadcaster broadcaster, IDownloadRepo
             {
                 try
                 {
+                    using var scope = scopeFactory.CreateScope();
+                    var downloadRepository = scope.ServiceProvider.GetRequiredService<IDownloadRepository>();
+
                     // Broadcast current downloads (excluding old finished ones)
                     var downloads = await downloadRepository.Get(
                         DownloadStatus.Pending,
