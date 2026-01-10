@@ -8,6 +8,7 @@ public static class IServiceCollectionExtensions
 {
     public static IServiceCollection AddYtDownloaderServices(this IServiceCollection services)
     {
+        services.AddSingleton<YtDlMainOptionSet>();
         services.AddSingleton<YtDlVideoOptionSet>();
         services.AddSingleton<YtDlVideoOptionSetMergeFlexible>();
         services.AddSingleton<YtDlVideoOptionSetNoThumbnail>();

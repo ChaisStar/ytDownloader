@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace YtDownloader.Core.Services;
 
-public class YtDlService(YtDlVideoOptionSet optionSet, YtDlVideoOptionSetMergeFlexible mergeFlexibleOptionSet, 
+public class YtDlService(YtDlMainOptionSet mainOptionSet, YtDlVideoOptionSet optionSet, YtDlVideoOptionSetMergeFlexible mergeFlexibleOptionSet, 
     YtDlVideoOptionSetNoThumbnail noThumbnailOptionSet, YtDlVideoOptionSetAutoMerge autoMergeOptionSet, 
     YtDlVideoOptionSetBestPreMerged bestPreMergedOptionSet, YtDlVideoOptionSetRawDownload rawDownloadOptionSet,
     YtDlVideoOptionSetVideoOnly videoOnlyOptionSet, YtDlMp3OptionSet mp3OptionSet) : IYtDlService
@@ -34,6 +34,7 @@ public class YtDlService(YtDlVideoOptionSet optionSet, YtDlVideoOptionSetMergeFl
     
     private readonly OptionSet[] videoFallbacks = new[]
     {
+        mainOptionSet.Value,
         optionSet.Value,
         mergeFlexibleOptionSet.Value,
         noThumbnailOptionSet.Value,
@@ -45,6 +46,7 @@ public class YtDlService(YtDlVideoOptionSet optionSet, YtDlVideoOptionSetMergeFl
     
     private readonly string[] fallbackNames = new[]
     {
+        "main",
         "primary",
         "flexible merge",
         "without thumbnail",
@@ -79,7 +81,7 @@ public class YtDlService(YtDlVideoOptionSet optionSet, YtDlVideoOptionSetMergeFl
         return lastResult ?? new RunResult<string>(false, [], "");
     }
 
-    public Task<RunResult<VideoData>> GetVideoData(string url) => youtubeDL.RunVideoDataFetch(url, overrideOptions: optionSet.Value);
+    public Task<RunResult<VideoData>> GetVideoData(string url) => youtubeDL.RunVideoDataFetch(url, overrideOptions: mainOptionSet.Value);
 
     public Task<RunResult<string>> RunMp3PlaylistDownload(string url) => mp3Dl.RunVideoDownload(url, overrideOptions: mp3OptionSet.Value);
 

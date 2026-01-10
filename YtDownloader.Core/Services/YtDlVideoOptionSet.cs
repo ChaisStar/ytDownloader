@@ -2,6 +2,18 @@
 
 namespace YtDownloader.Core.Services;
 
+public class YtDlMainOptionSet : Lazy<OptionSet>
+{
+    public YtDlMainOptionSet() : base(new OptionSet
+    {
+        Format = "bestvideo[height<=1080][height>=720][fps<=30]+bestaudio[ext=m4a][abr<=128]/bestvideo[height<=1080][fps<=30]+bestaudio[ext=m4a]/best[height<=1080]",
+        MergeOutputFormat = DownloadMergeFormat.Mp4,
+        EmbedThumbnail = true,
+        Cookies = "/tmp/cookies/cookies.txt",
+    })
+    { }
+}
+
 // Primary format: Download best available single file
 public class YtDlVideoOptionSet : Lazy<OptionSet>
 {

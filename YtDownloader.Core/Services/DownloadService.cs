@@ -24,11 +24,11 @@ internal class DownloadService(IDownloadRepository repository, IYtDlService ytDl
             throw new InvalidOperationException($"Failed to fetch video metadata: {string.Join(Environment.NewLine, metadata.ErrorOutput)}");
         }
 
-        // Best video (720p to 1080p, 30 FPS, ~5Mbps max)
+        // Best video (720p to 1080p, 30 FPS)
         var bestVideo = metadata.Data.Formats?
             .Where(f => f.VideoCodec != "none" && f.VideoCodec != null &&
                         (f.Height ?? 0) <= 1080 && (f.Height ?? 0) >= 720 &&
-                        (f.FrameRate ?? 0) <= 30 && (f.VideoBitrate ?? 0) <= 5000)
+                        (f.FrameRate ?? 0) <= 30)
             .OrderByDescending(f => f.Height ?? 0)
             .ThenByDescending(f => f.VideoBitrate ?? 0)
             .FirstOrDefault();
